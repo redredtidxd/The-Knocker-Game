@@ -67,7 +67,11 @@ io.on('connection', (socket) => {
       answers: {},
       usedQuestions: [],
       isPlaying: false,
-      roundHistory: []
+      roundHistory: [],
+      isTyping: {},
+      skips: {
+        [socket.id]: 2 // 2 skips per player
+      }
     };
     games.push(game);
     socket.join(roomCode);
@@ -89,6 +93,7 @@ io.on('connection', (socket) => {
     
     if (game && game.players.length < 2) {
       game.players.push(socket.id);
+      game.skips[socket.id] = 2; // Give 2 skips to new player
       socket.join(data.gameId);
       users[socket.id].gameId = data.gameId;
       users[socket.id].name = data.name;
@@ -120,6 +125,47 @@ io.on('connection', (socket) => {
       console.log('   ❌ Error al unirse:', errorMsg);
       socket.emit('joinError', errorMsg);
     }
+  });
+
+  socket.on('typing', (isTyping) => {
+    const gameId = users[socket.id].gameId;
+    if (!gameId) return;
+    const game = games.find(g => g.id === gameId);
+    if (!game) return;
+    
+    game.isTyping[socket.id] = isTyping;
+    socket.to(gameId).emit('playerTyping', { 
+      playerId: socket.id, 
+      isTyping 
+    });
+  });
+
+  socket.on('skipQuestion', () => {
+    const gameId = users[socket.id].gameId;
+    const game = games.find(g => g.id === gameId);
+    if (!game) return;
+    
+    if (game.skips[socket.id] <= 0) {
+      socket.emit('noSkipsLeft');
+      return;
+    }
+    
+    game.skips[socket.id]--;
+    
+    // Get new question for this player
+    const newQuestion = getRandomQuestion(game.mode, game.currentLevel, game.usedQuestions);
+    if (newQuestion) {
+      // Remove old question from used questions if it exists
+      game.usedQuestions = game.usedQuestions.filter(q => q !== game.questions[socket.id]);
+      game.questions[socket.id] = newQuestion;
+      game.usedQuestions.push(newQuestion);
+    }
+    
+    io.to(gameId).emit('questionSkipped', {
+      playerId: socket.id,
+      skipsLeft: game.skips[socket.id],
+      game
+    });
   });
 
   socket.on('submitAnswer', (data) => {
@@ -176,6 +222,7 @@ io.on('connection', (socket) => {
     // Siguiente ronda o nivel
     game.currentRound++;
     game.answers = {};
+    game.isTyping = {}; // Reset typing status
     
     if (game.currentRound > game.maxRounds) {
       game.currentLevel++;

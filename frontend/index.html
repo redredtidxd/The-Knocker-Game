@@ -113,9 +113,17 @@
       <h2 class="text-4xl font-bold text-purple-400 mb-4">Esperando jugador...</h2>
       <p class="text-gray-400 text-lg mb-8">Comparte este código con tu amigo:</p>
       
-      <div class="bg-gray-800 rounded-2xl p-8 mb-8">
+      <div class="bg-gray-800 rounded-2xl p-8 mb-4">
         <span id="roomCode" class="text-6xl font-bold text-yellow-400 tracking-widest"></span>
       </div>
+      
+      <button onclick="copyInviteLink()" id="copyInviteBtn" class="mb-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M8 3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1H9a1 1 0 01-1-1V3z"/>
+          <path d="M3 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z"/>
+        </svg>
+        Copiar Enlace de Invitación
+      </button>
       
       <button onclick="leaveGame()" class="text-gray-400 hover:text-red-400">
         Cancelar partida
@@ -147,12 +155,25 @@
               <span id="player1Initial">J1</span>
             </div>
             <div class="flex-1 bg-gray-800 rounded-2xl p-6">
-              <h3 id="player1Name" class="text-purple-400 font-bold mb-3">Jugador 1</h3>
+              <div class="flex justify-between items-center mb-3">
+                <h3 id="player1Name" class="text-purple-400 font-bold">Jugador 1</h3>
+                <div class="flex items-center gap-2">
+                  <span id="player1Typing" class="text-gray-400 text-sm hidden">
+                    <span class="animate-pulse">Escribiendo...</span>
+                  </span>
+                  <span id="player1Skips" class="text-purple-300 text-sm bg-purple-900/30 px-2 py-1 rounded"></span>
+                </div>
+              </div>
               <p id="player1Question" class="text-white text-lg mb-4"></p>
               <textarea id="player1Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-purple-500" rows="3"></textarea>
-              <button id="player1SubmitBtn" onclick="submitAnswer()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                Enviar Respuesta
-              </button>
+              <div class="flex gap-3 mt-4">
+                <button id="player1SubmitBtn" onclick="submitAnswer()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  Enviar Respuesta
+                </button>
+                <button id="player1SkipBtn" onclick="skipQuestion()" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  ⏭️ Saltar
+                </button>
+              </div>
             </div>
           </div>
 
@@ -167,12 +188,25 @@
               <span id="player2Initial">J2</span>
             </div>
             <div class="flex-1 bg-gray-800 rounded-2xl p-6">
-              <h3 id="player2Name" class="text-blue-400 font-bold mb-3">Jugador 2</h3>
+              <div class="flex justify-between items-center mb-3 flex-row-reverse">
+                <h3 id="player2Name" class="text-blue-400 font-bold">Jugador 2</h3>
+                <div class="flex items-center gap-2 flex-row-reverse">
+                  <span id="player2Typing" class="text-gray-400 text-sm hidden">
+                    <span class="animate-pulse">Escribiendo...</span>
+                  </span>
+                  <span id="player2Skips" class="text-blue-300 text-sm bg-blue-900/30 px-2 py-1 rounded"></span>
+                </div>
+              </div>
               <p id="player2Question" class="text-white text-lg mb-4"></p>
               <textarea id="player2Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-blue-500" rows="3"></textarea>
-              <button id="player2SubmitBtn" onclick="submitAnswer()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                Enviar Respuesta
-              </button>
+              <div class="flex gap-3 mt-4 flex-row-reverse">
+                <button id="player2SubmitBtn" onclick="submitAnswer()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  Enviar Respuesta
+                </button>
+                <button id="player2SkipBtn" onclick="skipQuestion()" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                  ⏭️ Saltar
+                </button>
+              </div>
             </div>
           </div>
         </div>

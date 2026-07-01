@@ -7,7 +7,8 @@ let currentGame = null;
 let currentPlayerId = null;
 let players = [];
 let hasAnswered = false;
-let countdownInterval = null;
+let currentRoomCode = null;
+let typingTimeout = null;
 
 function hideAllScreens() {
   const screens = ['mainMenu', 'createGame', 'joinGame', 'waitingRoom', 'gameScreen', 'gameOverScreen', 'playerLeftModal'];
@@ -18,7 +19,7 @@ function hideAllScreens() {
 
 function showMainMenu() {
   hideAllScreens();
-  if (countdownInterval) clearInterval(countdownInterval);
+  if (typingTimeout) clearTimeout(typingTimeout);
   document.getElementById('mainMenu').classList.remove('hidden');
 }
 
@@ -97,6 +98,33 @@ function joinGame(gameId) {
   socket.emit('joinGame', { name, gameId });
 }
 
+function copyInviteLink() {
+  const inviteLink = `${window.location.origin}?room=${currentRoomCode}`;
+  navigator.clipboard.writeText(inviteLink).then(() => {
+    const btn = document.getElementById('copyInviteBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+      </svg>
+      ¡Enlace Copiado!
+    `;
+    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+    
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+      btn.classList.add('bg-green-600', 'hover:bg-green-700');
+    }, 2000);
+  });
+}
+
+function skipQuestion() {
+  if (hasAnswered) return;
+  socket.emit('skipQuestion');
+}
+
 function submitAnswer() {
   if (hasAnswered) return;
   
@@ -119,17 +147,14 @@ function submitAnswer() {
   if (currentPlayerId === players[0].id) {
     document.getElementById('player1Answer').disabled = true;
     document.getElementById('player1SubmitBtn').disabled = true;
+    document.getElementById('player1SkipBtn').disabled = true;
     document.getElementById('player1SubmitBtn').textContent = 'Esperando...';
   } else if (currentPlayerId === players[1].id) {
     document.getElementById('player2Answer').disabled = true;
     document.getElementById('player2SubmitBtn').disabled = true;
+    document.getElementById('player2SkipBtn').disabled = true;
     document.getElementById('player2SubmitBtn').textContent = 'Esperando...';
   }
-}
-
-function leaveGame() {
-  socket.emit('leaveGame');
-  showMainMenu();
 }
 
 function updateGameList(games) {
@@ -153,8 +178,23 @@ function updateGameList(games) {
   `).join('');
 }
 
+function updateSkipsDisplay() {
+  if (!currentGame) return;
+  
+  // Player 1
+  const p1Skips = currentGame.skips[players[0].id] ?? 2;
+  document.getElementById('player1Skips').textContent = `⏭️ ${p1Skips} saltos restantes`;
+  document.getElementById('player1SkipBtn').disabled = p1Skips <= 0 || hasAnswered;
+  
+  // Player 2
+  const p2Skips = currentGame.skips[players[1].id] ?? 2;
+  document.getElementById('player2Skips').textContent = `⏭️ ${p2Skips} saltos restantes`;
+  document.getElementById('player2SkipBtn').disabled = p2Skips <= 0 || hasAnswered;
+}
+
 function updateGameUI(game) {
   console.log('Updating UI with game:', game);
+  currentGame = game;
   
   document.getElementById('currentLevel').textContent = game.currentLevel;
   document.getElementById('currentRound').textContent = game.currentRound;
@@ -164,20 +204,21 @@ function updateGameUI(game) {
   const progress = (completedRounds / totalRounds) * 100;
   document.getElementById('progressBar').style.width = `${progress}%`;
   
-  console.log(`Progress: ${progress}% (${completedRounds}/${totalRounds})`);
-  
   // Set up names and initials
   document.getElementById('player1Name').textContent = players[0].name;
   document.getElementById('player1Initial').textContent = players[0].name[0].toUpperCase();
   document.getElementById('player2Name').textContent = players[1].name;
   document.getElementById('player2Initial').textContent = players[1].name[0].toUpperCase();
   
-  // Set questions
-  document.getElementById('player1Question').textContent = game.questions[players[0].id];
-  document.getElementById('player2Question').textContent = game.questions[players[1].id];
+  // Set questions - add safety check
+  document.getElementById('player1Question').textContent = game.questions[players[0].id] || 'Cargando pregunta...';
+  document.getElementById('player2Question').textContent = game.questions[players[1].id] || 'Cargando pregunta...';
   
   // Render history
   renderHistory(game.roundHistory);
+  
+  // Update skips display
+  updateSkipsDisplay();
   
   // Reset UI
   hasAnswered = false;
@@ -195,10 +236,12 @@ function updateGameUI(game) {
   if (currentPlayerId === players[0].id) {
     document.getElementById('player2Answer').disabled = true;
     document.getElementById('player2SubmitBtn').disabled = true;
+    document.getElementById('player2SkipBtn').disabled = true;
     document.getElementById('player2SubmitBtn').textContent = 'Es turno del otro jugador';
   } else {
     document.getElementById('player1Answer').disabled = true;
     document.getElementById('player1SubmitBtn').disabled = true;
+    document.getElementById('player1SkipBtn').disabled = true;
     document.getElementById('player1SubmitBtn').textContent = 'Es turno del otro jugador';
   }
   
@@ -252,8 +295,9 @@ function showAnswers(data) {
   console.log('Showing answers:', data);
   
   // Update currentGame with latest history
-  if (currentGame && currentGame.roundHistory) {
-    renderHistory(currentGame.roundHistory);
+  if (currentGame) {
+    // The history is already in currentGame from the server
+    // We just need to make sure we use it
   }
   
   document.getElementById('gameContent').classList.add('hidden');
@@ -272,8 +316,44 @@ function showAnswers(data) {
   document.getElementById('revealPlayer2Answer').textContent = data.answers[players[1].id].answer;
 }
 
+function setupTypingListeners() {
+  ['player1Answer', 'player2Answer'].forEach(id => {
+    const textarea = document.getElementById(id);
+    if (!textarea) return;
+    
+    textarea.addEventListener('input', () => {
+      // Only send typing if this is our textarea
+      if (currentPlayerId === players[0].id && id === 'player1Answer') {
+        handleTyping();
+      } else if (currentPlayerId === players[1].id && id === 'player2Answer') {
+        handleTyping();
+      }
+    });
+  });
+}
+
+function handleTyping() {
+  socket.emit('typing', true);
+  
+  if (typingTimeout) clearTimeout(typingTimeout);
+  
+  typingTimeout = setTimeout(() => {
+    socket.emit('typing', false);
+  }, 1000);
+}
+
 socket.on('connect', () => {
   currentPlayerId = socket.id;
+  console.log('Connected with ID:', currentPlayerId);
+  
+  // Check URL for room code
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomCode = urlParams.get('room');
+  if (roomCode) {
+    document.getElementById('joinGame').classList.remove('hidden');
+    document.getElementById('gameCode').value = roomCode;
+    document.getElementById('mainMenu').classList.add('hidden');
+  }
 });
 
 socket.on('gameList', (games) => {
@@ -282,6 +362,7 @@ socket.on('gameList', (games) => {
 
 socket.on('gameCreated', (game) => {
   currentGame = game;
+  currentRoomCode = game.id;
   document.getElementById('roomCode').textContent = game.id;
   showWaitingRoom();
 });
@@ -294,22 +375,71 @@ socket.on('gameStarted', (data) => {
   console.log('Game started:', data);
   currentGame = data.game;
   players = data.players;
+  setupTypingListeners();
   updateGameUI(currentGame);
   showGameScreen();
 });
 
+socket.on('playerTyping', (data) => {
+  const typingEl = data.playerId === players[0].id 
+    ? document.getElementById('player1Typing') 
+    : document.getElementById('player2Typing');
+  
+  if (typingEl) {
+    if (data.isTyping) {
+      typingEl.classList.remove('hidden');
+    } else {
+      typingEl.classList.add('hidden');
+    }
+  }
+});
+
+socket.on('questionSkipped', (data) => {
+  console.log('Question skipped:', data);
+  currentGame = data.game;
+  
+  if (data.playerId === currentPlayerId) {
+    alert(`Pregunta saltada! Te quedan ${data.skipsLeft} saltos.`);
+  }
+  
+  updateGameUI(currentGame);
+});
+
+socket.on('noSkipsLeft', () => {
+  alert('¡No te quedan saltos!');
+});
+
 socket.on('roundAnswers', (data) => {
-  console.log('Received roundAnswers:', data);
-  // Ensure currentGame has the latest roundHistory
-  if (currentGame) {
-    // The history is already in currentGame from the server
-    // We just need to make sure we use it
+  console.log('Received round answers:', data);
+  // Ensure currentGame has the latest round history
+  if (currentGame && data.answers && data.questions) {
+    // Check if we need to add to history
+    const player1 = players[0].id;
+    const player2 = players[1].id;
+    if (player1 && player2 && currentGame.roundHistory) {
+      const lastRound = currentGame.roundHistory[currentGame.roundHistory.length - 1];
+      // Only add if not already there
+      if (!lastRound || lastRound.round !== currentGame.currentRound || lastRound.level !== currentGame.currentLevel) {
+        currentGame.roundHistory.push({
+          round: currentGame.currentRound,
+          level: currentGame.currentLevel,
+          questions: {
+            [player1]: data.questions[player1],
+            [player2]: data.questions[player2]
+          },
+          answers: {
+            [player1]: data.answers[player1].answer,
+            [player2]: data.answers[player2].answer
+          }
+        });
+      }
+    }
   }
   showAnswers(data);
 });
 
 socket.on('nextRound', (game) => {
-  console.log('Received nextRound:', game);
+  console.log('Received next round:', game);
   currentGame = game;
   updateGameUI(currentGame);
 });
