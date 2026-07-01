@@ -137,26 +137,28 @@ async function toggleRecording(playerNumber) {
     console.log('=== Starting Recording Process ===');
     console.log('Full URL:', window.location.href);
     console.log('navigator.mediaDevices:', !!navigator.mediaDevices);
-    console.log('navigator.mediaDevices.getUserMedia:', !!navigator.mediaDevices?.getUserMedia);
     console.log('window.isSecureContext:', window.isSecureContext);
     console.log('hostname:', window.location.hostname);
+
+    // First check if we are in a secure context
+    if (!window.isSecureContext && 
+        window.location.hostname !== 'localhost' && 
+        window.location.hostname !== '127.0.0.1' && 
+        window.location.hostname !== '[::1]') {
+      alert('⚠️ Para usar la grabación de audio, debes acceder al juego usando "http://localhost:3000" o un sitio HTTPS seguro.');
+      return;
+    }
 
     // Basic compatibility check
     if (!navigator.mediaDevices) {
       console.error('navigator.mediaDevices not found!');
-      alert('Tu navegador no tiene soporte para acceder al micrófono. Por favor, usa Chrome o Firefox.');
-      return;
-    }
-
-    if (!navigator.mediaDevices.getUserMedia) {
-      console.error('getUserMedia not found!');
-      alert('Tu navegador no soporta la función de grabación de audio. Por favor, actualiza tu navegador.');
+      alert('Tu navegador no tiene soporte para acceder al micrófono. Por favor, usa Chrome, Firefox, Edge o Opera.');
       return;
     }
 
     if (typeof window.MediaRecorder === 'undefined') {
       console.error('MediaRecorder not found!');
-      alert('Tu navegador no soporta MediaRecorder. Por favor, usa Chrome o Firefox.');
+      alert('Tu navegador no soporta MediaRecorder. Por favor, usa Chrome, Firefox, Edge o Opera.');
       return;
     }
 
@@ -199,7 +201,15 @@ async function toggleRecording(playerNumber) {
       });
     };
 
-    mediaRecorder.start(1000); // Collect data every 1 second
+    // Start recording
+    try {
+      mediaRecorder.start(1000); // Collect data every 1 second
+    } catch (startError) {
+      console.error('Error starting MediaRecorder:', startError);
+      alert('Error al iniciar la grabación. Por favor, inténtalo de nuevo con otro navegador.');
+      return;
+    }
+
     console.log('MediaRecorder started');
     
     if (recordBtnText) recordBtnText.textContent = 'Detener';
@@ -222,16 +232,16 @@ async function toggleRecording(playerNumber) {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     
-    let errorMessage = 'Error al acceder al micrófono. ';
+    let errorMessage = '';
     
     if (error.name === 'NotAllowedError') {
-      errorMessage += 'Has bloqueado el acceso al micrófono. Por favor, habilítalo en la configuración de tu navegador (🔒 en la barra de direcciones) y actualiza la página.';
+      errorMessage = '❌ Has bloqueado el acceso al micrófono.\n\nPara arreglarlo:\n1. Haz clic en el 🔒 en la barra de direcciones de tu navegador\n2. Busca "Micrófono" y cambia la opción a "Permitir"\n3. Actualiza la página (F5)';
     } else if (error.name === 'NotFoundError') {
-      errorMessage += 'No se encontró un micrófono. Por favor, conecta uno e inténtalo de nuevo.';
+      errorMessage = '❌ No se encontró un micrófono.\n\nPor favor, conecta un micrófono a tu computadora e inténtalo de nuevo.';
     } else if (error.name === 'NotReadableError') {
-      errorMessage += 'El micrófono está siendo usado por otra aplicación. Por favor, cierra otras apps que estén usando el micrófono y actualiza la página.';
+      errorMessage = '❌ El micrófono está siendo usado por otra aplicación.\n\nPor favor, cierra otras apps como Discord, Teams, o Chrome que estén usando el micrófono, actualiza la página y inténtalo de nuevo.';
     } else {
-      errorMessage += `Error: ${error.message}`;
+      errorMessage = `❌ Error al acceder al micrófono: ${error.message}\n\nPor favor, inténtalo de nuevo con Chrome o Firefox.`;
     }
     
     alert(errorMessage);
