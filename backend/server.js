@@ -162,33 +162,39 @@ io.on('connection', (socket) => {
           [player2]: game.questions[player2]
         }
       });
-      
-      // Esperar un poco antes de siguiente ronda
-      setTimeout(() => {
-        // Siguiente ronda o nivel
-        game.currentRound++;
-        game.answers = {};
-        
-        if (game.currentRound > game.maxRounds) {
-          game.currentLevel++;
-          game.currentRound = 1;
-          
-          if (game.currentLevel > game.maxLevels) {
-            io.to(gameId).emit('gameOver', game);
-            return;
-          }
-        }
-        
-        // Nuevas preguntas
-        const q1 = getRandomQuestion(game.mode, game.currentLevel, game.usedQuestions);
-        const q2 = getRandomQuestion(game.mode, game.currentLevel, [...game.usedQuestions, q1]);
-        game.questions[player1] = q1;
-        game.questions[player2] = q2;
-        game.usedQuestions.push(q1, q2);
-        
-        io.to(gameId).emit('nextRound', game);
-      }, 5000); // 5 segundos para ver las respuestas
     }
+  });
+
+  socket.on('continueNextRound', () => {
+    const gameId = users[socket.id].gameId;
+    const game = games.find(g => g.id === gameId);
+    
+    if (!game) return;
+    
+    // Siguiente ronda o nivel
+    game.currentRound++;
+    game.answers = {};
+    
+    if (game.currentRound > game.maxRounds) {
+      game.currentLevel++;
+      game.currentRound = 1;
+      
+      if (game.currentLevel > game.maxLevels) {
+        io.to(gameId).emit('gameOver', game);
+        return;
+      }
+    }
+    
+    // Nuevas preguntas
+    const player1 = game.players[0];
+    const player2 = game.players[1];
+    const q1 = getRandomQuestion(game.mode, game.currentLevel, game.usedQuestions);
+    const q2 = getRandomQuestion(game.mode, game.currentLevel, [...game.usedQuestions, q1]);
+    game.questions[player1] = q1;
+    game.questions[player2] = q2;
+    game.usedQuestions.push(q1, q2);
+    
+    io.to(gameId).emit('nextRound', game);
   });
 
   socket.on('leaveGame', () => {

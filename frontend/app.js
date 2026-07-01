@@ -154,13 +154,17 @@ function updateGameList(games) {
 }
 
 function updateGameUI(game) {
+  console.log('Updating UI with game:', game);
+  
   document.getElementById('currentLevel').textContent = game.currentLevel;
   document.getElementById('currentRound').textContent = game.currentRound;
   
   const totalRounds = game.maxRounds * game.maxLevels;
-  const completedRounds = (game.currentLevel - 1) * game.maxRounds + game.currentRound - 1;
+  const completedRounds = (game.currentLevel - 1) * game.maxRounds + (game.currentRound - 1);
   const progress = (completedRounds / totalRounds) * 100;
   document.getElementById('progressBar').style.width = `${progress}%`;
+  
+  console.log(`Progress: ${progress}% (${completedRounds}/${totalRounds})`);
   
   // Set up names and initials
   document.getElementById('player1Name').textContent = players[0].name;
@@ -200,7 +204,13 @@ function updateGameUI(game) {
   document.getElementById('answersReveal').classList.add('hidden');
 }
 
+function continueNextRound() {
+  socket.emit('continueNextRound');
+}
+
 function showAnswers(data) {
+  console.log('Showing answers:', data);
+  
   document.getElementById('gameContent').classList.add('hidden');
   document.getElementById('answersReveal').classList.remove('hidden');
   
@@ -215,18 +225,6 @@ function showAnswers(data) {
   document.getElementById('revealPlayer2Question').textContent = data.questions[players[1].id];
   document.getElementById('revealPlayer2Name').textContent = data.answers[players[1].id].name;
   document.getElementById('revealPlayer2Answer').textContent = data.answers[players[1].id].answer;
-  
-  // Countdown
-  let countdown = 5;
-  document.getElementById('countdown').textContent = countdown;
-  
-  countdownInterval = setInterval(() => {
-    countdown--;
-    document.getElementById('countdown').textContent = countdown;
-    if (countdown <= 0) {
-      clearInterval(countdownInterval);
-    }
-  }, 1000);
 }
 
 socket.on('connect', () => {
