@@ -128,7 +128,22 @@ async function toggleRecording(playerNumber) {
     stopRecording(playerNumber);
   } else {
     try {
+      // First check if we can even access the microphone
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Tu navegador no soporta la grabación de audio. Por favor, usa un navegador moderno como Chrome o Firefox.');
+        return;
+      }
+      
+      // Check if we're in a secure context (HTTPS or localhost)
+      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        alert('La grabación de audio sólo funciona en sitios seguros (HTTPS). Por favor, usa HTTPS o accede desde localhost.');
+        return;
+      }
+      
+      console.log('Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone access granted!');
+      
       mediaRecorder = new MediaRecorder(stream);
       recordedChunks = [];
       recordingStartTime = Date.now();
@@ -168,7 +183,20 @@ async function toggleRecording(playerNumber) {
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      alert('Error al acceder al micrófono. Por favor, concede los permisos necesarios.');
+      
+      let errorMessage = 'Error al acceder al micrófono. ';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Has bloqueado el acceso al micrófono. Por favor, habilítalo en la configuración de tu navegador (🔒 en la barra de direcciones).';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No se encontró un micrófono. Por favor, conecta uno e inténtalo de nuevo.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage += 'El micrófono está siendo usado por otra aplicación. Por favor, cierra otras apps que estén usando el micrófono.';
+      } else {
+        errorMessage += 'Por favor, concede los permisos necesarios cuando el navegador te lo pida.';
+      }
+      
+      alert(errorMessage);
     }
   }
 }
