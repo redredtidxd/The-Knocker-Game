@@ -143,24 +143,55 @@ function joinGame(gameId) {
 
 function copyInviteLink() {
   const inviteLink = `${window.location.origin}?room=${currentRoomCode}`;
-  navigator.clipboard.writeText(inviteLink).then(() => {
-    const btn = document.getElementById('copyInviteBtn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-      </svg>
-      ¡Enlace Copiado!
-    `;
-    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
-    
-    setTimeout(() => {
-      btn.innerHTML = originalText;
-      btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
-      btn.classList.add('bg-green-600', 'hover:bg-green-700');
-    }, 2000);
-  });
+  
+  // Try to use navigator.clipboard first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(inviteLink)
+      .then(showCopySuccess)
+      .catch(() => copyWithFallback(inviteLink));
+  } else {
+    // Fallback for older browsers or non-HTTPS
+    copyWithFallback(inviteLink);
+  }
+}
+
+function copyWithFallback(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    document.execCommand('copy');
+    showCopySuccess();
+  } catch (err) {
+    alert('No se pudo copiar el enlace. Por favor, cópialo manualmente: ' + text);
+  } finally {
+    document.body.removeChild(textArea);
+  }
+}
+
+function showCopySuccess() {
+  const btn = document.getElementById('copyInviteBtn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+    </svg>
+    ¡Enlace Copiado!
+  `;
+  btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+  btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+  
+  setTimeout(() => {
+    btn.innerHTML = originalText;
+    btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+    btn.classList.add('bg-green-600', 'hover:bg-green-700');
+  }, 2000);
 }
 
 function skipQuestion() {
@@ -410,6 +441,8 @@ socket.on('gameCreated', (game) => {
   currentGame = game;
   currentRoomCode = game.id;
   document.getElementById('roomCode').textContent = game.id;
+  const inviteLink = `${window.location.origin}?room=${game.id}`;
+  document.getElementById('inviteLinkDisplay').textContent = inviteLink;
   showWaitingRoom();
 });
 
