@@ -633,15 +633,28 @@ function continueNextRound() {
 function showAnswers(data) {
   console.log('Showing answers:', data);
   
-  document.getElementById('gameContent')?.classList.add('hidden');
-  document.getElementById('answersReveal')?.classList.remove('hidden');
+  const gameContent = document.getElementById('gameContent');
+  const answersReveal = document.getElementById('answersReveal');
+  
+  if (gameContent) gameContent.classList.add('hidden');
+  if (answersReveal) answersReveal.classList.remove('hidden');
   
   // Player 1
-  document.getElementById('revealPlayer1Initial')?.textContent = players[0]?.name[0].toUpperCase();
-  document.getElementById('revealPlayer1Question')?.textContent = data.questions?.[players[0].id];
-  document.getElementById('revealPlayer1Name')?.textContent = data.answers?.[players[0].id]?.name;
+  const revealPlayer1Initial = document.getElementById('revealPlayer1Initial');
+  const revealPlayer1Question = document.getElementById('revealPlayer1Question');
+  const revealPlayer1Name = document.getElementById('revealPlayer1Name');
   
-  const player1AnswerData = data.answers?.[players[0].id]?.answer;
+  if (revealPlayer1Initial && players[0]?.name) {
+    revealPlayer1Initial.textContent = players[0].name[0].toUpperCase();
+  }
+  if (revealPlayer1Question && players[0]?.id) {
+    revealPlayer1Question.textContent = data.questions?.[players[0].id];
+  }
+  if (revealPlayer1Name && players[0]?.id) {
+    revealPlayer1Name.textContent = data.answers?.[players[0].id]?.name;
+  }
+  
+  const player1AnswerData = data.answers?.[players[0]?.id]?.answer;
   const revealPlayer1Text = document.getElementById('revealPlayer1Answer');
   const revealPlayer1Audio = document.getElementById('revealPlayer1Audio');
   
@@ -663,11 +676,21 @@ function showAnswers(data) {
   }
   
   // Player 2
-  document.getElementById('revealPlayer2Initial')?.textContent = players[1]?.name[0].toUpperCase();
-  document.getElementById('revealPlayer2Question')?.textContent = data.questions?.[players[1].id];
-  document.getElementById('revealPlayer2Name')?.textContent = data.answers?.[players[1].id]?.name;
+  const revealPlayer2Initial = document.getElementById('revealPlayer2Initial');
+  const revealPlayer2Question = document.getElementById('revealPlayer2Question');
+  const revealPlayer2Name = document.getElementById('revealPlayer2Name');
   
-  const player2AnswerData = data.answers?.[players[1].id]?.answer;
+  if (revealPlayer2Initial && players[1]?.name) {
+    revealPlayer2Initial.textContent = players[1].name[0].toUpperCase();
+  }
+  if (revealPlayer2Question && players[1]?.id) {
+    revealPlayer2Question.textContent = data.questions?.[players[1].id];
+  }
+  if (revealPlayer2Name && players[1]?.id) {
+    revealPlayer2Name.textContent = data.answers?.[players[1].id]?.name;
+  }
+  
+  const player2AnswerData = data.answers?.[players[1]?.id]?.answer;
   const revealPlayer2Text = document.getElementById('revealPlayer2Answer');
   const revealPlayer2Audio = document.getElementById('revealPlayer2Audio');
   
