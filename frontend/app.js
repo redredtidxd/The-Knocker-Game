@@ -176,6 +176,9 @@ function updateGameUI(game) {
   document.getElementById('player1Question').textContent = game.questions[players[0].id];
   document.getElementById('player2Question').textContent = game.questions[players[1].id];
   
+  // Render history
+  renderHistory(game.roundHistory);
+  
   // Reset UI
   hasAnswered = false;
   document.getElementById('player1Answer').value = '';
@@ -204,12 +207,54 @@ function updateGameUI(game) {
   document.getElementById('answersReveal').classList.add('hidden');
 }
 
+function renderHistory(history) {
+  const historySection = document.getElementById('historySection');
+  if (!history || history.length === 0) {
+    historySection.innerHTML = '';
+    return;
+  }
+  
+  historySection.innerHTML = `
+    <h3 class="text-gray-400 text-lg font-bold mb-4">Historial</h3>
+    ${history.map((round, index) => `
+      <div class="bg-gray-800/50 rounded-2xl p-4">
+        <div class="text-gray-500 text-sm mb-3">Ronda ${round.round} - Nivel ${round.level}</div>
+        <div class="space-y-4">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              ${players[0].name[0].toUpperCase()}
+            </div>
+            <div class="flex-1">
+              <p class="text-gray-400 text-xs mb-1">${round.questions[players[0].id]}</p>
+              <p class="text-purple-300">${round.answers[players[0].id]}</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-4 flex-row-reverse">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              ${players[1].name[0].toUpperCase()}
+            </div>
+            <div class="flex-1 text-right">
+              <p class="text-gray-400 text-xs mb-1">${round.questions[players[1].id]}</p>
+              <p class="text-blue-300">${round.answers[players[1].id]}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
 function continueNextRound() {
   socket.emit('continueNextRound');
 }
 
 function showAnswers(data) {
   console.log('Showing answers:', data);
+  
+  // Update currentGame with latest history
+  if (currentGame && currentGame.roundHistory) {
+    renderHistory(currentGame.roundHistory);
+  }
   
   document.getElementById('gameContent').classList.add('hidden');
   document.getElementById('answersReveal').classList.remove('hidden');
@@ -246,6 +291,7 @@ socket.on('joinedGame', (game) => {
 });
 
 socket.on('gameStarted', (data) => {
+  console.log('Game started:', data);
   currentGame = data.game;
   players = data.players;
   updateGameUI(currentGame);
@@ -253,10 +299,17 @@ socket.on('gameStarted', (data) => {
 });
 
 socket.on('roundAnswers', (data) => {
+  console.log('Received roundAnswers:', data);
+  // Ensure currentGame has the latest roundHistory
+  if (currentGame) {
+    // The history is already in currentGame from the server
+    // We just need to make sure we use it
+  }
   showAnswers(data);
 });
 
 socket.on('nextRound', (game) => {
+  console.log('Received nextRound:', game);
   currentGame = game;
   updateGameUI(currentGame);
 });

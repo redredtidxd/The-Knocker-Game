@@ -171,6 +171,8 @@ io.on('connection', (socket) => {
     
     if (!game) return;
     
+    console.log('Continuing to next round. Current:', game.currentLevel, game.currentRound);
+    
     // Siguiente ronda o nivel
     game.currentRound++;
     game.answers = {};
@@ -180,10 +182,13 @@ io.on('connection', (socket) => {
       game.currentRound = 1;
       
       if (game.currentLevel > game.maxLevels) {
+        console.log('Game over!');
         io.to(gameId).emit('gameOver', game);
         return;
       }
     }
+    
+    console.log('New:', game.currentLevel, game.currentRound);
     
     // Nuevas preguntas
     const player1 = game.players[0];
@@ -194,6 +199,7 @@ io.on('connection', (socket) => {
     game.questions[player2] = q2;
     game.usedQuestions.push(q1, q2);
     
+    console.log('Emitting nextRound with game:', game);
     io.to(gameId).emit('nextRound', game);
   });
 
