@@ -7,6 +7,7 @@ const path = require('path');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -34,9 +35,14 @@ function generateRoomCode() {
   return code;
 }
 
-function getRandomQuestion(level) {
-  const levelQuestions = questionsData.levels[level];
-  return levelQuestions[Math.floor(Math.random() * levelQuestions.length)];
+function getRandomQuestion(mode, level, usedQuestions) {
+  const questions = questionsData[mode]?.[level];
+  if (!questions) return null;
+  
+  const availableQuestions = questions.filter(q => !usedQuestions.includes(q));
+  if (availableQuestions.length === 0) return null;
+  
+  return availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
 }
 
 io.on('connection', (socket) => {
@@ -44,7 +50,6 @@ io.on('connection', (socket) => {
   console.log('   Handshake:', socket.handshake.headers.origin);
 
   users[socket.id] = { id: socket.id };
-
   socket.emit('gameList', games.filter(g => g.players.length < 2));
 
   socket.on('createGame', (data) => {
@@ -55,9 +60,14 @@ io.on('connection', (socket) => {
       host: socket.id,
       players: [socket.id],
       currentLevel: 1,
-      currentTurn: 0,
-      currentQuestion: null,
-      isPlaying: false
+      currentRound: 1,
+      maxRounds: 5,
+      maxLevels: 3,
+      questions: {},
+      answers: {},
+      usedQuestions: [],
+      isPlaying: false,
+      roundHistory: []
     };
     games.push(game);
     socket.join(roomCode);
@@ -87,7 +97,13 @@ io.on('connection', (socket) => {
       
       if (game.players.length === 2) {
         game.isPlaying = true;
-        game.currentQuestion = getRandomQuestion(game.currentLevel);
+        // Asignar preguntas iniciales
+        const q1 = getRandomQuestion(game.mode, game.currentLevel, game.usedQuestions);
+        const q2 = getRandomQuestion(game.mode, game.currentLevel, [...game.usedQuestions, q1]);
+        game.questions[game.players[0]] = q1;
+        game.questions[game.players[1]] = q2;
+        game.usedQuestions.push(q1, q2);
+        
         io.to(data.gameId).emit('gameStarted', {
           game,
           players: [
@@ -106,18 +122,72 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('nextTurn', () => {
+  socket.on('submitAnswer', (data) => {
     const gameId = users[socket.id].gameId;
     const game = games.find(g => g.id === gameId);
-    if (game) {
-      game.currentTurn = (game.currentTurn + 1) % 2;
+    
+    if (!game) return;
+    
+    console.log('📝 Respuesta recibida de', users[socket.id].name);
+    
+    game.answers[socket.id] = data.answer;
+    
+    // Verificar si ambos han respondido
+    const player1 = game.players[0];
+    const player2 = game.players[1];
+    
+    if (game.answers[player1] && game.answers[player2]) {
+      // Guardar esta ronda en el historial
+      game.roundHistory.push({
+        round: game.currentRound,
+        level: game.currentLevel,
+        questions: {
+          [player1]: game.questions[player1],
+          [player2]: game.questions[player2]
+        },
+        answers: {
+          [player1]: game.answers[player1],
+          [player2]: game.answers[player2]
+        }
+      });
       
-      if (game.currentTurn === 0) {
-        game.currentLevel = Math.min(3, game.currentLevel + 1);
-      }
+      // Emitir que ambos respondieron
+      io.to(gameId).emit('roundAnswers', {
+        answers: {
+          [player1]: { name: users[player1].name, answer: game.answers[player1] },
+          [player2]: { name: users[player2].name, answer: game.answers[player2] }
+        },
+        questions: {
+          [player1]: game.questions[player1],
+          [player2]: game.questions[player2]
+        }
+      });
       
-      game.currentQuestion = getRandomQuestion(game.currentLevel);
-      io.to(gameId).emit('turnChanged', game);
+      // Esperar un poco antes de siguiente ronda
+      setTimeout(() => {
+        // Siguiente ronda o nivel
+        game.currentRound++;
+        game.answers = {};
+        
+        if (game.currentRound > game.maxRounds) {
+          game.currentLevel++;
+          game.currentRound = 1;
+          
+          if (game.currentLevel > game.maxLevels) {
+            io.to(gameId).emit('gameOver', game);
+            return;
+          }
+        }
+        
+        // Nuevas preguntas
+        const q1 = getRandomQuestion(game.mode, game.currentLevel, game.usedQuestions);
+        const q2 = getRandomQuestion(game.mode, game.currentLevel, [...game.usedQuestions, q1]);
+        game.questions[player1] = q1;
+        game.questions[player2] = q2;
+        game.usedQuestions.push(q1, q2);
+        
+        io.to(gameId).emit('nextRound', game);
+      }, 5000); // 5 segundos para ver las respuestas
     }
   });
 
@@ -131,7 +201,9 @@ io.on('connection', (socket) => {
         if (game.players.length === 0) {
           games.splice(gameIndex, 1);
         } else {
-          io.to(gameId).emit('playerLeft');
+          io.to(gameId).emit('playerLeft', { 
+            playerName: users[socket.id].name 
+          });
         }
         io.emit('gameList', games.filter(g => g.players.length < 2));
       }
@@ -140,7 +212,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Usuario desconectado:', socket.id);
+    console.log('❌ Usuario desconectado:', socket.id);
     const gameId = users[socket.id]?.gameId;
     if (gameId) {
       const gameIndex = games.findIndex(g => g.id === gameId);
@@ -150,7 +222,9 @@ io.on('connection', (socket) => {
         if (game.players.length === 0) {
           games.splice(gameIndex, 1);
         } else {
-          io.to(gameId).emit('playerLeft');
+          io.to(gameId).emit('playerLeft', { 
+            playerName: users[socket.id].name 
+          });
         }
         io.emit('gameList', games.filter(g => g.players.length < 2));
       }
@@ -161,6 +235,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Servidor corriendo en http://0.0.0.0:${PORT}`);
   console.log(`Para acceder desde otra computadora en la misma red, usa tu IP local`);
 });

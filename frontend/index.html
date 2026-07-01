@@ -40,16 +40,34 @@
       <div class="w-full max-w-md space-y-6">
         <div>
           <label class="block text-gray-300 mb-2">Tu Nombre</label>
-          <input type="text" id="playerName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500">
+          <input type="text" id="playerName" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500">
         </div>
         
         <div>
           <label class="block text-gray-300 mb-2">Modo de Juego</label>
-          <select id="gameMode" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500">
-            <option value="classic">Modo Clásico (Espejo de Preguntas)</option>
-            <option value="speed">Modo Rápido (Coming Soon)</option>
-            <option value="deep">Modo Profundo (Coming Soon)</option>
-          </select>
+          <div class="space-y-3">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="casual" checked class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Casual</p>
+                <p class="text-gray-400 text-sm">Preguntas para conocerse mejor</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
+              <input type="radio" name="gameMode" value="picante" disabled class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Picante 🔥</p>
+                <p class="text-yellow-400 text-sm">Coming Soon</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
+              <input type="radio" name="gameMode" value="quiz" disabled class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Quiz 🎮</p>
+                <p class="text-yellow-400 text-sm">Coming Soon</p>
+              </div>
+            </label>
+          </div>
         </div>
         
         <button onclick="createGame()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
@@ -69,19 +87,19 @@
       <div class="w-full max-w-md space-y-6">
         <div>
           <label class="block text-gray-300 mb-2">Tu Nombre</label>
-          <input type="text" id="joinPlayerName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500">
+          <input type="text" id="joinPlayerName" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500">
         </div>
         
         <div>
           <label class="block text-gray-300 mb-2">Partidas Disponibles</label>
-          <div id="gameList" class="bg-gray-800 rounded-lg p-4 max-h-60 overflow-y-auto">
+          <div id="gameList" class="bg-gray-800 rounded-xl p-4 max-h-60 overflow-y-auto">
             <p class="text-gray-500 text-center">No hay partidas disponibles</p>
           </div>
         </div>
         
         <div>
           <label class="block text-gray-300 mb-2">O introduce el código:</label>
-          <input type="text" id="gameCode" placeholder="ABCD" maxlength="4" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white text-center text-2xl uppercase focus:outline-none focus:border-purple-500">
+          <input type="text" id="gameCode" placeholder="ABCD" maxlength="4" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white text-center text-2xl uppercase tracking-widest focus:outline-none focus:border-purple-500">
         </div>
         
         <button onclick="joinGameByCode()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
@@ -95,8 +113,8 @@
       <h2 class="text-4xl font-bold text-purple-400 mb-4">Esperando jugador...</h2>
       <p class="text-gray-400 text-lg mb-8">Comparte este código con tu amigo:</p>
       
-      <div class="bg-gray-800 rounded-xl p-6 mb-8">
-        <span id="roomCode" class="text-5xl font-bold text-yellow-400 tracking-widest"></span>
+      <div class="bg-gray-800 rounded-2xl p-8 mb-8">
+        <span id="roomCode" class="text-6xl font-bold text-yellow-400 tracking-widest"></span>
       </div>
       
       <button onclick="leaveGame()" class="text-gray-400 hover:text-red-400">
@@ -105,39 +123,118 @@
     </div>
 
     <!-- Game Screen -->
-    <div id="gameScreen" class="hidden flex flex-col items-center justify-center min-h-screen">
-      <div class="w-full max-w-2xl">
-        <div class="flex justify-between items-center mb-8">
-          <div id="player1Info" class="text-left">
-            <p class="text-gray-400 text-sm">Jugador 1</p>
-            <p id="player1Name" class="text-white text-xl font-bold"></p>
+    <div id="gameScreen" class="hidden flex flex-col items-center min-h-screen py-8">
+      <div class="w-full max-w-4xl">
+        <!-- Progress Bar -->
+        <div class="mb-8">
+          <div class="flex justify-between text-gray-400 text-sm mb-2">
+            <span>Nivel <span id="currentLevel">1</span></span>
+            <span>Ronda <span id="currentRound">1</span>/5</span>
           </div>
-          
+          <div class="w-full bg-gray-700 rounded-full h-3">
+            <div id="progressBar" class="bg-purple-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Questions & Answers Section -->
+        <div id="gameContent" class="space-y-6">
+          <!-- Player 1 Side -->
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+              <span id="player1Initial">J1</span>
+            </div>
+            <div class="flex-1 bg-gray-800 rounded-2xl p-6">
+              <h3 id="player1Name" class="text-purple-400 font-bold mb-3">Jugador 1</h3>
+              <p id="player1Question" class="text-white text-lg mb-4"></p>
+              <textarea id="player1Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-purple-500" rows="3"></textarea>
+              <button id="player1SubmitBtn" onclick="submitAnswer()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Enviar Respuesta
+              </button>
+            </div>
+          </div>
+
+          <!-- VS -->
           <div class="text-center">
-            <p class="text-gray-400 text-sm">Nivel</p>
-            <p id="currentLevel" class="text-purple-400 text-2xl font-bold">1</p>
+            <span class="text-4xl font-bold text-gray-600">VS</span>
           </div>
+
+          <!-- Player 2 Side -->
+          <div class="flex items-start gap-4 flex-row-reverse">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+              <span id="player2Initial">J2</span>
+            </div>
+            <div class="flex-1 bg-gray-800 rounded-2xl p-6">
+              <h3 id="player2Name" class="text-blue-400 font-bold mb-3">Jugador 2</h3>
+              <p id="player2Question" class="text-white text-lg mb-4"></p>
+              <textarea id="player2Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-blue-500" rows="3"></textarea>
+              <button id="player2SubmitBtn" onclick="submitAnswer()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                Enviar Respuesta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answers Reveal -->
+        <div id="answersReveal" class="hidden space-y-6">
+          <h2 class="text-3xl font-bold text-yellow-400 text-center mb-8">¡Respuestas!</h2>
           
-          <div id="player2Info" class="text-right">
-            <p class="text-gray-400 text-sm">Jugador 2</p>
-            <p id="player2Name" class="text-white text-xl font-bold"></p>
+          <!-- Player 1 Answer -->
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+              <span id="revealPlayer1Initial">J1</span>
+            </div>
+            <div class="flex-1">
+              <div class="bg-gray-800 rounded-2xl p-4 mb-2">
+                <p id="revealPlayer1Question" class="text-gray-400 text-sm mb-2"></p>
+              </div>
+              <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
+                <p id="revealPlayer1Name" class="font-bold mb-2"></p>
+                <p id="revealPlayer1Answer" class="text-lg"></p>
+              </div>
+            </div>
           </div>
+
+          <!-- Player 2 Answer -->
+          <div class="flex items-start gap-4 flex-row-reverse">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+              <span id="revealPlayer2Initial">J2</span>
+            </div>
+            <div class="flex-1">
+              <div class="bg-gray-800 rounded-2xl p-4 mb-2">
+                <p id="revealPlayer2Question" class="text-gray-400 text-sm mb-2"></p>
+              </div>
+              <div class="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 text-white">
+                <p id="revealPlayer2Name" class="font-bold mb-2"></p>
+                <p id="revealPlayer2Answer" class="text-lg"></p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-gray-400 text-center mt-8">Siguiente ronda en <span id="countdown">5</span> segundos...</p>
         </div>
-        
-        <div id="questionCard" class="bg-gray-800 rounded-2xl p-8 mb-8 shadow-2xl">
-          <p id="question" class="text-2xl md:text-3xl text-white text-center leading-relaxed"></p>
-        </div>
-        
-        <div id="turnIndicator" class="text-center mb-8">
-          <p class="text-gray-400 mb-2">Turno de:</p>
-          <p id="currentPlayerTurn" class="text-purple-400 text-2xl font-bold"></p>
-        </div>
-        
-        <div class="flex justify-center">
-          <button id="nextTurnBtn" onclick="nextTurn()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-12 rounded-xl transition-all duration-300 transform hover:scale-105">
-            Listo, te toca
-          </button>
-        </div>
+      </div>
+    </div>
+
+    <!-- Player Left Notification -->
+    <div id="playerLeftModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div class="bg-gray-800 rounded-2xl p-8 max-w-md w-full mx-4 text-center">
+        <h2 class="text-3xl font-bold text-red-400 mb-4">¡Tu compañero se fue!</h2>
+        <p id="playerLeftText" class="text-gray-300 mb-8"></p>
+        <button onclick="showMainMenu()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all">
+          Volver al Menú
+        </button>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="hidden flex flex-col items-center justify-center min-h-screen">
+      <h1 class="text-5xl font-bold text-yellow-400 mb-4 text-center">🎉 ¡Juego Terminado! 🎉</h1>
+      <p class="text-gray-400 text-xl mb-12 text-center">Espero que hayáis disfrutado</p>
+      
+      <div class="flex flex-col gap-4 w-full max-w-xs">
+        <button onclick="showMainMenu()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
+          Volver al Menú
+        </button>
       </div>
     </div>
   </div>

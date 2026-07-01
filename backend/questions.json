@@ -1,40 +1,48 @@
 {
-  "levels": {
+  "casual": {
     "1": [
       "¿Cuál es tu comida favorita de la infancia?",
       "¿Qué serie o película te ha hecho reír más?",
       "¿Si tuvieras un superpoder, cuál elegirías?",
       "¿Cuál es tu hobby favorito?",
-      "¿Qué canción te recuerda a tu adolescencia?",
-      "¿Cuál es tu viaje soñado?",
-      "¿Qué animal te gustaría ser por un día?",
-      "¿Cuál es tu juego de mesa preferido?",
-      "¿Qué te hace sonreír sin falta?",
-      "¿Cuál es tu temporada del año favorita?"
+      "¿Qué canción te recuerda a tu adolescencia?"
     ],
     "2": [
       "¿Qué es lo que más valoras en una amistad?",
       "¿Cuál ha sido el mayor reto que has superado?",
       "¿Qué te gustaría cambiar de ti mismo/a?",
       "¿Cuál es tu mayor sueño a largo plazo?",
-      "¿Qué te hace sentir vivo/a?",
-      "¿Qué es lo que más te preocupa del futuro?",
-      "¿Cuál es la lección más importante que has aprendido?",
-      "¿Qué cosa nunca te aburre hacer?",
-      "¿Qué es lo que más te sorprende de ti mismo/a?",
-      "¿Cuál es tu mayor motivación cada día?"
+      "¿Qué te hace sentir vivo/a?"
     ],
     "3": [
       "¿Qué es lo que más te arrepientes de no haber hecho?",
       "¿Cuál es tu mayor miedo?",
       "¿Qué es lo que realmente te hace feliz?",
-      "¿Qué secretito has guardado mucho tiempo?",
-      "¿Cuál es la cosa más vulnerable que has compartido?",
-      "¿Qué crees que es el verdadero amor?",
-      "¿Qué le dirías a tu yo de hace 5 años?",
-      "¿Qué es lo que más te define como persona?",
-      "¿Qué crees que es el sentido de la vida?",
-      "¿Qué es lo que más te gustaría que la gente supiera de ti?"
+      "¿Qué cosa nunca te aburre hacer?",
+      "¿Qué crees que es el verdadero amor?"
+    ]
+  },
+  "picante": {
+    "1": [
+      "¿Cuál es tu mayor mentira piadosa?",
+      "¿Qué es lo más tonto que has hecho por amor?",
+      "¿Si pudieras borrar un recuerdo, cuál sería?",
+      "¿Has usado alguna vez una app de citas?",
+      "¿Cuál es tu mayor complejo físico?"
+    ],
+    "2": [
+      "¿Cuál es la cosa más rara que has hecho en la intimidad?",
+      "¿Has tenido un romance con alguien del trabajo/escuela?",
+      "¿Qué es lo que más te excita en una persona?",
+      "¿Cuál es tu fantasía más extraña?",
+      "¿Has besado a alguien del mismo sexo?"
+    ],
+    "3": [
+      "¿Cuál es tu mayor secreto que nadie sabe?",
+      "¿Qué es lo que más te avergüenza admitir?",
+      "¿Has engañado alguna vez en una relación?",
+      "¿Cuál es la cosa más atrevida que has hecho?",
+      "¿Qué es lo que realmente quieres en la vida?"
     ]
   }
 }
