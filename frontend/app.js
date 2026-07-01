@@ -140,15 +140,6 @@ async function toggleRecording(playerNumber) {
     console.log('window.isSecureContext:', window.isSecureContext);
     console.log('hostname:', window.location.hostname);
 
-    // First check if we are in a secure context
-    if (!window.isSecureContext && 
-        window.location.hostname !== 'localhost' && 
-        window.location.hostname !== '127.0.0.1' && 
-        window.location.hostname !== '[::1]') {
-      alert('⚠️ Para usar la grabación de audio, debes acceder al juego usando "http://localhost:3000" o un sitio HTTPS seguro.');
-      return;
-    }
-
     // Basic compatibility check
     if (!navigator.mediaDevices) {
       console.error('navigator.mediaDevices not found!');
