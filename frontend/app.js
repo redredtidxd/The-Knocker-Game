@@ -51,6 +51,14 @@ function updateInputTypeVisibility() {
 function showJoinGame() {
   hideAllScreens();
   document.getElementById('joinGame').classList.remove('hidden');
+  
+  // Add Enter key listener to joinPlayerName
+  const joinPlayerNameInput = document.getElementById('joinPlayerName');
+  joinPlayerNameInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      joinGameByCode();
+    }
+  });
 }
 
 function showWaitingRoom() {
@@ -388,6 +396,9 @@ socket.on('connect', () => {
     document.getElementById('joinGame').classList.remove('hidden');
     document.getElementById('gameCode').value = roomCode;
     document.getElementById('mainMenu').classList.add('hidden');
+    
+    // Pre-fill the room code and automatically focus the name input
+    document.getElementById('joinPlayerName').focus();
   }
 });
 
