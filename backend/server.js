@@ -57,6 +57,7 @@ io.on('connection', (socket) => {
     const game = {
       id: roomCode,
       mode: data.mode,
+      inputType: data.inputType || 'text',
       host: socket.id,
       players: [socket.id],
       currentLevel: 1,
@@ -176,7 +177,11 @@ io.on('connection', (socket) => {
     
     console.log('📝 Respuesta recibida de', users[socket.id].name);
     
-    game.answers[socket.id] = data.answer;
+    game.answers[socket.id] = {
+      text: data.answer,
+      audio: data.audioData || null,
+      isAudio: data.isAudio || false
+    };
     
     // Verificar si ambos han respondido
     const player1 = game.players[0];

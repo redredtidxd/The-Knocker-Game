@@ -9,6 +9,12 @@ let players = [];
 let hasAnswered = false;
 let currentRoomCode = null;
 let typingTimeout = null;
+let inputType = 'text';
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingStartTime = null;
+let recordingInterval = null;
+let recordedAudioBlob = null;
 
 function hideAllScreens() {
   const screens = ['mainMenu', 'createGame', 'joinGame', 'waitingRoom', 'gameScreen', 'gameOverScreen', 'playerLeftModal'];
@@ -86,7 +92,7 @@ function createGame() {
   const modeInputs = document.querySelectorAll('input[name="gameMode"]');
   const inputTypeInputs = document.querySelectorAll('input[name="inputType"]');
   let mode = 'casual';
-  let inputType = 'text';
+  inputType = 'text';
   
   modeInputs.forEach(input => {
     if (input.checked) mode = input.value;
@@ -111,6 +117,83 @@ function leaveGame() {
     players = [];
     showMainMenu();
   }
+}
+
+async function toggleRecording(playerNumber) {
+  const recordBtn = document.getElementById(`player${playerNumber}RecordBtn`);
+  const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
+  const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
+  
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording(playerNumber);
+  } else {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      recordedChunks = [];
+      recordingStartTime = Date.now();
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        recordedAudioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(recordedAudioBlob);
+        const audioElement = document.getElementById(`player${playerNumber}Audio`);
+        const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
+        
+        audioElement.src = audioUrl;
+        audioPreview.classList.remove('hidden');
+        
+        // Stop the stream tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
+      recordBtnText.textContent = 'Detener';
+      indicator.classList.remove('hidden');
+      
+      // Update time counter
+      recordingInterval = setInterval(() => {
+        const elapsed = Date.now() - recordingStartTime;
+        const seconds = Math.floor(elapsed / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        document.getElementById(`player${playerNumber}RecordingTime`).textContent = 
+          `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Error al acceder al micrófono. Por favor, concede los permisos necesarios.');
+    }
+  }
+}
+
+function stopRecording(playerNumber) {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    clearInterval(recordingInterval);
+    
+    const recordBtn = document.getElementById(`player${playerNumber}RecordBtn`);
+    const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
+    const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
+    
+    recordBtnText.textContent = 'Grabar';
+    indicator.classList.add('hidden');
+  }
+}
+
+function clearRecording(playerNumber) {
+  recordedAudioBlob = null;
+  const audioElement = document.getElementById(`player${playerNumber}Audio`);
+  const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
+  
+  audioElement.src = '';
+  audioPreview.classList.add('hidden');
 }
 
 function joinGameByCode() {
@@ -199,36 +282,60 @@ function skipQuestion() {
   socket.emit('skipQuestion');
 }
 
-function submitAnswer() {
+async function submitAnswer() {
   if (hasAnswered) return;
   
   let answer = '';
-  if (currentPlayerId === players[0].id) {
-    answer = document.getElementById('player1Answer').value.trim();
-  } else if (currentPlayerId === players[1].id) {
-    answer = document.getElementById('player2Answer').value.trim();
-  }
+  let audioData = null;
   
-  if (!answer) {
-    alert('Por favor, escribe una respuesta');
-    return;
+  if (inputType === 'voice') {
+    if (!recordedAudioBlob) {
+      alert('Por favor, graba una respuesta');
+      return;
+    }
+    
+    // Convert blob to base64
+    audioData = await blobToBase64(recordedAudioBlob);
+    answer = '[Audio Message';
+  } else {
+    if (currentPlayerId === players[0].id) {
+      answer = document.getElementById('player1Answer').value.trim();
+    } else if (currentPlayerId === players[1].id) {
+      answer = document.getElementById('player2Answer').value.trim();
+    }
+    
+    if (!answer) {
+      alert('Por favor, escribe una respuesta');
+      return;
+    }
   }
   
   hasAnswered = true;
-  socket.emit('submitAnswer', { answer });
+  socket.emit('submitAnswer', { answer, audioData, isAudio: inputType === 'voice' });
   
   // Disable UI
   if (currentPlayerId === players[0].id) {
     document.getElementById('player1Answer').disabled = true;
     document.getElementById('player1SubmitBtn').disabled = true;
     document.getElementById('player1SkipBtn').disabled = true;
+    document.getElementById('player1RecordBtn').disabled = true;
     document.getElementById('player1SubmitBtn').textContent = 'Esperando...';
   } else if (currentPlayerId === players[1].id) {
     document.getElementById('player2Answer').disabled = true;
     document.getElementById('player2SubmitBtn').disabled = true;
     document.getElementById('player2SkipBtn').disabled = true;
+    document.getElementById('player2RecordBtn').disabled = true;
     document.getElementById('player2SubmitBtn').textContent = 'Esperando...';
   }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 function updateGameList(games) {
@@ -270,6 +377,11 @@ function updateGameUI(game) {
   console.log('Updating UI with game:', game);
   currentGame = game;
   
+  // Get input type from game if available
+  if (game.inputType) {
+    inputType = game.inputType;
+  }
+  
   document.getElementById('currentLevel').textContent = game.currentLevel;
   document.getElementById('currentRound').textContent = game.currentRound;
   
@@ -288,36 +400,69 @@ function updateGameUI(game) {
   document.getElementById('player1Question').textContent = game.questions[players[0].id] || 'Cargando pregunta...';
   document.getElementById('player2Question').textContent = game.questions[players[1].id] || 'Cargando pregunta...';
   
-  // Render history
-  renderHistory(game.roundHistory);
+  // Show/hide text/voice inputs based on input type
+  const player1TextInput = document.getElementById('player1TextInput');
+  const player1VoiceInput = document.getElementById('player1VoiceInput');
+  const player2TextInput = document.getElementById('player2TextInput');
+  const player2VoiceInput = document.getElementById('player2VoiceInput');
   
-  // Update skips display
-  updateSkipsDisplay();
+  if (inputType === 'voice') {
+    player1TextInput.classList.add('hidden');
+    player2TextInput.classList.add('hidden');
+    player1VoiceInput.classList.remove('hidden');
+    player2VoiceInput.classList.remove('hidden');
+  } else {
+    player1TextInput.classList.remove('hidden');
+    player2TextInput.classList.remove('hidden');
+    player1VoiceInput.classList.add('hidden');
+    player2VoiceInput.classList.add('hidden');
+  }
   
-  // Reset UI
+  // Reset UI for new round
   hasAnswered = false;
+  recordedAudioBlob = null;
+  
+  // Reset text inputs
   document.getElementById('player1Answer').value = '';
   document.getElementById('player1Answer').disabled = false;
   document.getElementById('player1SubmitBtn').disabled = false;
   document.getElementById('player1SubmitBtn').textContent = 'Enviar Respuesta';
+  document.getElementById('player1SkipBtn').disabled = false;
   
   document.getElementById('player2Answer').value = '';
   document.getElementById('player2Answer').disabled = false;
   document.getElementById('player2SubmitBtn').disabled = false;
   document.getElementById('player2SubmitBtn').textContent = 'Enviar Respuesta';
+  document.getElementById('player2SkipBtn').disabled = false;
   
-  // Only show your own textarea enabled
+  // Reset audio previews
+  document.getElementById('player1AudioPreview').classList.add('hidden');
+  document.getElementById('player2AudioPreview').classList.add('hidden');
+  document.getElementById('player1Audio').src = '';
+  document.getElementById('player2Audio').src = '';
+  
+  // Only enable your own input
   if (currentPlayerId === players[0].id) {
+    // Disable player 2's inputs
     document.getElementById('player2Answer').disabled = true;
     document.getElementById('player2SubmitBtn').disabled = true;
     document.getElementById('player2SkipBtn').disabled = true;
+    document.getElementById('player2RecordBtn').disabled = true;
     document.getElementById('player2SubmitBtn').textContent = 'Es turno del otro jugador';
   } else {
+    // Disable player 1's inputs
     document.getElementById('player1Answer').disabled = true;
     document.getElementById('player1SubmitBtn').disabled = true;
     document.getElementById('player1SkipBtn').disabled = true;
+    document.getElementById('player1RecordBtn').disabled = true;
     document.getElementById('player1SubmitBtn').textContent = 'Es turno del otro jugador';
   }
+  
+  // Render history
+  renderHistory(game.roundHistory);
+  
+  // Update skips display
+  updateSkipsDisplay();
   
   // Show questions, hide answers
   document.getElementById('gameContent').classList.remove('hidden');
@@ -343,7 +488,7 @@ function renderHistory(history) {
             </div>
             <div class="flex-1">
               <p class="text-gray-400 text-xs mb-1">${round.questions[players[0].id]}</p>
-              <p class="text-purple-300">${round.answers[players[0].id]}</p>
+              ${(round.answers[players[0].id] && round.answers[players[0].id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[0].id].audio}"></audio>` : `<p class="text-purple-300">${round.answers[players[0].id].text || round.answers[players[0].id]}</p>`}
             </div>
           </div>
           <div class="flex items-start gap-4 flex-row-reverse">
@@ -352,7 +497,7 @@ function renderHistory(history) {
             </div>
             <div class="flex-1 text-right">
               <p class="text-gray-400 text-xs mb-1">${round.questions[players[1].id]}</p>
-              <p class="text-blue-300">${round.answers[players[1].id]}</p>
+              ${(round.answers[players[1].id] && round.answers[players[1].id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[1].id].audio}"></audio>` : `<p class="text-blue-300">${round.answers[players[1].id].text || round.answers[players[1].id]}</p>`}
             </div>
           </div>
         </div>
@@ -381,13 +526,39 @@ function showAnswers(data) {
   document.getElementById('revealPlayer1Initial').textContent = players[0].name[0].toUpperCase();
   document.getElementById('revealPlayer1Question').textContent = data.questions[players[0].id];
   document.getElementById('revealPlayer1Name').textContent = data.answers[players[0].id].name;
-  document.getElementById('revealPlayer1Answer').textContent = data.answers[players[0].id].answer;
+  const player1AnswerData = data.answers[players[0].id].answer;
+  const revealPlayer1Text = document.getElementById('revealPlayer1Answer');
+  const revealPlayer1Audio = document.getElementById('revealPlayer1Audio');
+  
+  if (player1AnswerData && player1AnswerData.isAudio) {
+    revealPlayer1Text.textContent = '';
+    revealPlayer1Text.classList.add('hidden');
+    revealPlayer1Audio.classList.remove('hidden');
+    revealPlayer1Audio.src = player1AnswerData.audio;
+  } else {
+    revealPlayer1Audio.classList.add('hidden');
+    revealPlayer1Text.classList.remove('hidden');
+    revealPlayer1Text.textContent = player1AnswerData.text || player1AnswerData;
+  }
   
   // Player 2
   document.getElementById('revealPlayer2Initial').textContent = players[1].name[0].toUpperCase();
   document.getElementById('revealPlayer2Question').textContent = data.questions[players[1].id];
   document.getElementById('revealPlayer2Name').textContent = data.answers[players[1].id].name;
-  document.getElementById('revealPlayer2Answer').textContent = data.answers[players[1].id].answer;
+  const player2AnswerData = data.answers[players[1].id].answer;
+  const revealPlayer2Text = document.getElementById('revealPlayer2Answer');
+  const revealPlayer2Audio = document.getElementById('revealPlayer2Audio');
+  
+  if (player2AnswerData && player2AnswerData.isAudio) {
+    revealPlayer2Text.textContent = '';
+    revealPlayer2Text.classList.add('hidden');
+    revealPlayer2Audio.classList.remove('hidden');
+    revealPlayer2Audio.src = player2AnswerData.audio;
+  } else {
+    revealPlayer2Audio.classList.add('hidden');
+    revealPlayer2Text.classList.remove('hidden');
+    revealPlayer2Text.textContent = player2AnswerData.text || player2AnswerData;
+  }
 }
 
 function setupTypingListeners() {

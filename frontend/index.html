@@ -200,7 +200,34 @@
                 </div>
               </div>
               <p id="player1Question" class="text-white text-lg mb-4"></p>
-              <textarea id="player1Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-purple-500" rows="3"></textarea>
+              
+              <!-- Text Input -->
+              <div id="player1TextInput" class="mb-3">
+                <textarea id="player1Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-purple-500" rows="3"></textarea>
+              </div>
+              
+              <!-- Voice Input -->
+              <div id="player1VoiceInput" class="hidden mb-3 space-y-3">
+                <div class="flex items-center gap-4">
+                  <button id="player1RecordBtn" onclick="toggleRecording(1)" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition-all disabled:opacity-50 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm1.943 10A4.001 4.001 0 003 10a1 1 0 012 0 2 2 0 004 0 1 1 0 012 0 2 2 0 004 0 1 1 0 112 0 4.001 4.001 0 01-5.943 4h-.114z" clip-rule="evenodd" />
+                    </svg>
+                    <span id="player1RecordBtnText">Grabar</span>
+                  </button>
+                  <div id="player1RecordingIndicator" class="hidden flex items-center gap-2">
+                    <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                    <span class="text-red-400 font-mono" id="player1RecordingTime">00:00</span>
+                  </div>
+                </div>
+                <div id="player1AudioPreview" class="hidden">
+                  <audio id="player1Audio" controls class="w-full"></audio>
+                  <button onclick="clearRecording(1)" class="mt-2 text-gray-400 hover:text-red-400 text-sm">
+                    Eliminar grabación
+                  </button>
+                </div>
+              </div>
+              
               <div class="flex gap-3 mt-4">
                 <button id="player1SubmitBtn" onclick="submitAnswer()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   Enviar Respuesta
@@ -233,7 +260,36 @@
                 </div>
               </div>
               <p id="player2Question" class="text-white text-lg mb-4"></p>
-              <textarea id="player2Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-blue-500" rows="3"></textarea>
+              
+              <!-- Text Input -->
+              <div id="player2TextInput" class="mb-3">
+                <textarea id="player2Answer" placeholder="Escribe tu respuesta..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white resize-none focus:outline-none focus:border-blue-500" rows="3"></textarea>
+              </div>
+              
+              <!-- Voice Input -->
+              <div id="player2VoiceInput" class="hidden mb-3 space-y-3">
+                <div class="flex items-center gap-4 flex-row-reverse">
+                  <button id="player2RecordBtn" onclick="toggleRecording(2)" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition-all disabled:opacity-50 flex items-center gap-2">
+                    <span id="player2RecordBtnText">Grabar</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm1.943 10A4.001 4.001 0 003 10a1 1 0 012 0 2 2 0 004 0 1 1 0 012 0 2 2 0 004 0 1 1 0 112 0 4.001 4.001 0 01-5.943 4h-.114z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <div id="player2RecordingIndicator" class="hidden flex items-center gap-2">
+                    <span class="text-red-400 font-mono" id="player2RecordingTime">00:00</span>
+                    <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                  </div>
+                </div>
+                <div id="player2AudioPreview" class="hidden">
+                  <audio id="player2Audio" controls class="w-full"></audio>
+                  <div class="flex justify-end">
+                    <button onclick="clearRecording(2)" class="mt-2 text-gray-400 hover:text-red-400 text-sm">
+                      Eliminar grabación
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
               <div class="flex gap-3 mt-4 flex-row-reverse">
                 <button id="player2SubmitBtn" onclick="submitAnswer()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   Enviar Respuesta
@@ -259,9 +315,10 @@
               <div class="bg-gray-800 rounded-2xl p-4 mb-2">
                 <p id="revealPlayer1Question" class="text-gray-400 text-sm mb-2"></p>
               </div>
-              <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
+              <div id="revealPlayer1AnswerContainer" class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
                 <p id="revealPlayer1Name" class="font-bold mb-2"></p>
                 <p id="revealPlayer1Answer" class="text-lg"></p>
+                <audio id="revealPlayer1Audio" controls class="hidden w-full mt-2"></audio>
               </div>
             </div>
           </div>
@@ -275,9 +332,10 @@
               <div class="bg-gray-800 rounded-2xl p-4 mb-2">
                 <p id="revealPlayer2Question" class="text-gray-400 text-sm mb-2"></p>
               </div>
-              <div class="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 text-white">
+              <div id="revealPlayer2AnswerContainer" class="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl p-6 text-white">
                 <p id="revealPlayer2Name" class="font-bold mb-2"></p>
                 <p id="revealPlayer2Answer" class="text-lg"></p>
+                <audio id="revealPlayer2Audio" controls class="hidden w-full mt-2"></audio>
               </div>
             </div>
           </div>
