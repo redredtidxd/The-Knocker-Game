@@ -1,4 +1,8 @@
-const socket = io();
+// Configura la URL de tu servidor backend aquí
+const SERVER_URL = window.location.origin; // Usa la misma URL que la página frontend
+const socket = io(SERVER_URL, {
+  transports: ['websocket', 'polling']
+});
 
 let currentGame = null;
 let currentPlayerId = null;

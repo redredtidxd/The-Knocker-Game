@@ -11,7 +11,14 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
 
 const questionsData = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
 
@@ -33,7 +40,8 @@ function getRandomQuestion(level) {
 }
 
 io.on('connection', (socket) => {
-  console.log('Usuario conectado:', socket.id);
+  console.log('✅ Nuevo usuario conectado:', socket.id);
+  console.log('   Handshake:', socket.handshake.headers.origin);
 
   users[socket.id] = { id: socket.id };
 
@@ -60,12 +68,22 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinGame', (data) => {
+    console.log('🔄 Intentando unirse a partida:', data.gameId);
     const game = games.find(g => g.id === data.gameId);
+    
+    if (game) {
+      console.log('   Partida encontrada:', game.id, 'Jugadores:', game.players.length);
+    } else {
+      console.log('   ❌ Partida NO encontrada:', data.gameId);
+    }
+    
     if (game && game.players.length < 2) {
       game.players.push(socket.id);
       socket.join(data.gameId);
       users[socket.id].gameId = data.gameId;
       users[socket.id].name = data.name;
+      
+      console.log('   ✅ Jugador', data.name, 'se unió a la partida', data.gameId);
       
       if (game.players.length === 2) {
         game.isPlaying = true;
@@ -82,7 +100,9 @@ io.on('connection', (socket) => {
       }
       io.emit('gameList', games.filter(g => g.players.length < 2));
     } else {
-      socket.emit('joinError', 'La sala no existe o está llena');
+      const errorMsg = game ? 'La sala está llena' : 'La sala no existe';
+      console.log('   ❌ Error al unirse:', errorMsg);
+      socket.emit('joinError', errorMsg);
     }
   });
 
@@ -140,6 +160,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+  console.log(`Para acceder desde otra computadora en la misma red, usa tu IP local`);
 });
