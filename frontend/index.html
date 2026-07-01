@@ -47,7 +47,7 @@
           <label class="block text-gray-300 mb-2">Modo de Juego</label>
           <div class="space-y-3">
             <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
-              <input type="radio" name="gameMode" value="casual" checked class="mr-3 w-5 h-5 text-purple-600">
+              <input type="radio" name="gameMode" value="casual" checked class="mr-3 w-5 h-5 text-purple-600" id="gameModeCasual">
               <div>
                 <p class="text-white font-bold">Modo Casual</p>
                 <p class="text-gray-400 text-sm">Preguntas para conocerse mejor</p>
@@ -70,7 +70,7 @@
           </div>
         </div>
         
-        <div>
+        <div id="inputTypeSection">
           <label class="block text-gray-300 mb-2">Tipo de Respuesta</label>
           <div class="space-y-3">
             <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
@@ -80,11 +80,11 @@
                 <p class="text-gray-400 text-sm">Escribe tus respuestas</p>
               </div>
             </label>
-            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
-              <input type="radio" name="inputType" value="voice" disabled class="mr-3 w-5 h-5 text-purple-600">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="inputType" value="voice" class="mr-3 w-5 h-5 text-purple-600">
               <div>
                 <p class="text-white font-bold">Mensajes de Voz 🎙️</p>
-                <p class="text-yellow-400 text-sm">Coming Soon</p>
+                <p class="text-gray-400 text-sm">Graba tus respuestas con tu voz</p>
               </div>
             </label>
           </div>

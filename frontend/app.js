@@ -26,6 +26,26 @@ function showMainMenu() {
 function showCreateGame() {
   hideAllScreens();
   document.getElementById('createGame').classList.remove('hidden');
+  
+  // Add event listeners for game mode changes
+  const gameModeInputs = document.querySelectorAll('input[name="gameMode"]');
+  gameModeInputs.forEach(input => {
+    input.addEventListener('change', updateInputTypeVisibility);
+  });
+  
+  // Initial visibility check
+  updateInputTypeVisibility();
+}
+
+function updateInputTypeVisibility() {
+  const selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
+  const inputTypeSection = document.getElementById('inputTypeSection');
+  
+  if (selectedMode === 'casual') {
+    inputTypeSection.style.display = 'block';
+  } else {
+    inputTypeSection.style.display = 'none';
+  }
 }
 
 function showJoinGame() {
