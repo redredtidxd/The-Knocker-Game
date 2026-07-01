@@ -11,12 +11,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
+const io = new Server(server);
 
 const questionsData = JSON.parse(fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf8'));
 
