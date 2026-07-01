@@ -129,20 +129,40 @@ async function toggleRecording(playerNumber) {
   } else {
     try {
       // First check if we can even access the microphone
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Tu navegador no soporta la grabación de audio. Por favor, usa un navegador moderno como Chrome o Firefox.');
+      console.log('Full URL:', window.location.href);
+      console.log('navigator.mediaDevices:', navigator.mediaDevices);
+      console.log('navigator.mediaDevices.getUserMedia:', typeof navigator.mediaDevices?.getUserMedia);
+      
+      let hasGetUserMedia = false;
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        hasGetUserMedia = true;
+      }
+      
+      if (!hasGetUserMedia) {
+        alert('Tu navegador no soporta la grabación de audio. Por favor, usa un navegador moderno como Chrome, Firefox o Opera GX.');
+        console.error('No getUserMedia support detected');
         return;
       }
       
       // Check if we're in a secure context (HTTPS or localhost)
-      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      console.log('window.isSecureContext:', window.isSecureContext);
+      console.log('hostname:', window.location.hostname);
+      
+      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && window.location.hostname !== '::1') {
         alert('La grabación de audio sólo funciona en sitios seguros (HTTPS). Por favor, usa HTTPS o accede desde localhost.');
+        console.error('Not in a secure context');
         return;
       }
       
       console.log('Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log('Microphone access granted!');
+      
+      console.log('MediaRecorder available:', typeof window.MediaRecorder);
+      if (typeof window.MediaRecorder === 'undefined') {
+        alert('Tu navegador no soporta MediaRecorder. Por favor, usa un navegador moderno como Chrome, Firefox o Opera GX.');
+        return;
+      }
       
       mediaRecorder = new MediaRecorder(stream);
       recordedChunks = [];
