@@ -1,0 +1,40 @@
+{
+  "levels": {
+    "1": [
+      "¿Cuál es tu comida favorita de la infancia?",
+      "¿Qué serie o película te ha hecho reír más?",
+      "¿Si tuvieras un superpoder, cuál elegirías?",
+      "¿Cuál es tu hobby favorito?",
+      "¿Qué canción te recuerda a tu adolescencia?",
+      "¿Cuál es tu viaje soñado?",
+      "¿Qué animal te gustaría ser por un día?",
+      "¿Cuál es tu juego de mesa preferido?",
+      "¿Qué te hace sonreír sin falta?",
+      "¿Cuál es tu temporada del año favorita?"
+    ],
+    "2": [
+      "¿Qué es lo que más valoras en una amistad?",
+      "¿Cuál ha sido el mayor reto que has superado?",
+      "¿Qué te gustaría cambiar de ti mismo/a?",
+      "¿Cuál es tu mayor sueño a largo plazo?",
+      "¿Qué te hace sentir vivo/a?",
+      "¿Qué es lo que más te preocupa del futuro?",
+      "¿Cuál es la lección más importante que has aprendido?",
+      "¿Qué cosa nunca te aburre hacer?",
+      "¿Qué es lo que más te sorprende de ti mismo/a?",
+      "¿Cuál es tu mayor motivación cada día?"
+    ],
+    "3": [
+      "¿Qué es lo que más te arrepientes de no haber hecho?",
+      "¿Cuál es tu mayor miedo?",
+      "¿Qué es lo que realmente te hace feliz?",
+      "¿Qué secretito has guardado mucho tiempo?",
+      "¿Cuál es la cosa más vulnerable que has compartido?",
+      "¿Qué crees que es el verdadero amor?",
+      "¿Qué le dirías a tu yo de hace 5 años?",
+      "¿Qué es lo que más te define como persona?",
+      "¿Qué crees que es el sentido de la vida?",
+      "¿Qué es lo que más te gustaría que la gente supiera de ti?"
+    ]
+  }
+}
