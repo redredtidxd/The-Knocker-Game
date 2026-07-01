@@ -56,10 +56,16 @@ function showPlayerLeftModal(playerName) {
 function createGame() {
   const name = document.getElementById('playerName').value.trim();
   const modeInputs = document.querySelectorAll('input[name="gameMode"]');
+  const inputTypeInputs = document.querySelectorAll('input[name="inputType"]');
   let mode = 'casual';
+  let inputType = 'text';
   
   modeInputs.forEach(input => {
     if (input.checked) mode = input.value;
+  });
+  
+  inputTypeInputs.forEach(input => {
+    if (input.checked) inputType = input.value;
   });
   
   if (!name) {
@@ -67,7 +73,16 @@ function createGame() {
     return;
   }
   
-  socket.emit('createGame', { name, mode });
+  socket.emit('createGame', { name, mode, inputType });
+}
+
+function leaveGame() {
+  if (confirm('¿Estás seguro de que quieres salir de la partida?')) {
+    socket.emit('leaveGame');
+    currentGame = null;
+    players = [];
+    showMainMenu();
+  }
 }
 
 function joinGameByCode() {

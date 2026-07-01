@@ -70,6 +70,26 @@
           </div>
         </div>
         
+        <div>
+          <label class="block text-gray-300 mb-2">Tipo de Respuesta</label>
+          <div class="space-y-3">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="inputType" value="text" checked class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Campos de Texto</p>
+                <p class="text-gray-400 text-sm">Escribe tus respuestas</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
+              <input type="radio" name="inputType" value="voice" disabled class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Mensajes de Voz 🎙️</p>
+                <p class="text-yellow-400 text-sm">Coming Soon</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        
         <button onclick="createGame()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
           Crear y Esperar
         </button>
@@ -133,6 +153,16 @@
     <!-- Game Screen -->
     <div id="gameScreen" class="hidden flex flex-col items-center min-h-screen py-8">
       <div class="w-full max-w-4xl">
+        <!-- Top Bar with Leave Button -->
+        <div class="flex justify-between items-center mb-4">
+          <button onclick="leaveGame()" class="text-gray-400 hover:text-red-400 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            Salir de la partida
+          </button>
+        </div>
+        
         <!-- Progress Bar -->
         <div class="mb-8">
           <div class="flex justify-between text-gray-400 text-sm mb-2">
