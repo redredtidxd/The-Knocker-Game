@@ -30,14 +30,14 @@
     </div>
 
     <!-- Create Game Screen -->
-    <div id="createGame" class="hidden flex flex-col items-center justify-center min-h-screen">
+    <div id="createGame" class="hidden flex flex-col items-center justify-center min-h-screen py-12">
       <button onclick="showMainMenu()" class="absolute top-8 left-8 text-gray-400 hover:text-white text-lg">
         ← Volver
       </button>
       
       <h2 class="text-4xl font-bold text-purple-400 mb-8">Crear Partida</h2>
       
-      <div class="w-full max-w-md space-y-6">
+      <div class="w-full max-w-lg space-y-6 overflow-y-auto max-h-[80vh]">
         <div>
           <label class="block text-gray-300 mb-2">Tu Nombre</label>
           <input type="text" id="playerName" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500">
@@ -45,7 +45,7 @@
         
         <div>
           <label class="block text-gray-300 mb-2">Modo de Juego</label>
-          <div class="space-y-3">
+          <div class="space-y-3 max-h-60 overflow-y-auto">
             <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
               <input type="radio" name="gameMode" value="casual" checked class="mr-3 w-5 h-5 text-purple-600" id="gameModeCasual">
               <div>
@@ -53,18 +53,116 @@
                 <p class="text-gray-400 text-sm">Preguntas para conocerse mejor</p>
               </div>
             </label>
-            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
-              <input type="radio" name="gameMode" value="picante" disabled class="mr-3 w-5 h-5 text-purple-600">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="picante" class="mr-3 w-5 h-5 text-purple-600">
               <div>
                 <p class="text-white font-bold">Modo Picante 🔥</p>
-                <p class="text-yellow-400 text-sm">Coming Soon</p>
+                <p class="text-gray-400 text-sm">Preguntas más íntimas</p>
               </div>
             </label>
-            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-not-allowed opacity-50">
-              <input type="radio" name="gameMode" value="quiz" disabled class="mr-3 w-5 h-5 text-purple-600">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="virgen" class="mr-3 w-5 h-5 text-purple-600">
               <div>
-                <p class="text-white font-bold">Modo Quiz 🎮</p>
-                <p class="text-yellow-400 text-sm">Coming Soon</p>
+                <p class="text-white font-bold">Modo Virgen 👼</p>
+                <p class="text-gray-400 text-sm">Preguntas incómodas y divertidas</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="apuesta" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Apuesta 🎯</p>
+                <p class="text-gray-400 text-sm">Adivina cómo responderá el otro</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="coincidencia" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Coincidencia 🔮</p>
+                <p class="text-gray-400 text-sm">Responded la misma cosa</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="gameMode" value="dado" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Modo Dado 🎲</p>
+                <p class="text-gray-400 text-sm">Cada nivel un modo aleatorio</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Submodo Picante -->
+        <div id="submodeSection" class="hidden">
+          <label class="block text-gray-300 mb-2">Submodo Picante</label>
+          <div class="space-y-3">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="submode" value="slow_burn" checked class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Subiendo Poco a Poco 🔥</p>
+                <p class="text-gray-400 text-sm">Empieza suave y va aumentando</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="submode" value="directo_grano" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Directo al Grano 💣</p>
+                <p class="text-gray-400 text-sm">Preguntas directas desde el principio</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Mazos Temáticos -->
+        <div id="mazoSection" class="hidden">
+          <label class="block text-gray-300 mb-2">Mazo Temático</label>
+          <div class="space-y-3">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="mazo" value="primera_cita" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Primera Cita 🌹</p>
+                <p class="text-gray-400 text-sm">Para conocerse desde cero</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="mazo" value="crisis_20_30" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Crisis de los 20/30 💭</p>
+                <p class="text-gray-400 text-sm">Preguntas existenciales</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="mazo" value="amigos_vida" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Amigos de toda la vida 👯</p>
+                <p class="text-gray-400 text-sm">Preguntas para probar la amistad</p>
+              </div>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Temporizador -->
+        <div id="timerSection">
+          <label class="block text-gray-300 mb-2">Temporizador (opcional)</label>
+          <div class="space-y-3">
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="timer" value="" checked class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">Sin temporizador</p>
+                <p class="text-gray-400 text-sm">Tómate tu tiempo</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="timer" value="30" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">30 segundos</p>
+                <p class="text-gray-400 text-sm">Rápido y dinámico</p>
+              </div>
+            </label>
+            <label class="flex items-center bg-gray-800 p-4 rounded-xl cursor-pointer hover:bg-gray-700 transition">
+              <input type="radio" name="timer" value="60" class="mr-3 w-5 h-5 text-purple-600">
+              <div>
+                <p class="text-white font-bold">1 minuto</p>
+                <p class="text-gray-400 text-sm">Un poco más de tiempo</p>
               </div>
             </label>
           </div>
@@ -85,7 +183,6 @@
               <div>
                 <p class="text-white font-bold">Mensajes de Voz 🎙️</p>
                 <p class="text-gray-400 text-sm">Graba tus respuestas con tu voz</p>
-                <p class="text-yellow-400 text-xs mt-1">⚠️ Usa http://localhost:3000 para que funcione</p>
               </div>
             </label>
           </div>
@@ -159,7 +256,7 @@
     <!-- Game Screen -->
     <div id="gameScreen" class="hidden flex flex-col items-center min-h-screen py-8">
       <div class="w-full max-w-4xl">
-        <!-- Top Bar with Leave Button -->
+        <!-- Top Bar with Leave Button and Timer -->
         <div class="flex justify-between items-center mb-4">
           <button onclick="leaveGame()" class="text-gray-400 hover:text-red-400 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -167,13 +264,21 @@
             </svg>
             Salir de la partida
           </button>
+          <div id="timerDisplay" class="hidden">
+            <span id="timerText" class="text-2xl font-bold text-yellow-400"></span>
+          </div>
+        </div>
+        
+        <!-- Modo Display -->
+        <div id="modeDisplay" class="text-center mb-4">
+          <span id="currentModeText" class="text-lg font-semibold text-purple-300 bg-purple-900/30 px-3 py-1 rounded-full"></span>
         </div>
         
         <!-- Progress Bar -->
         <div class="mb-8">
           <div class="flex justify-between text-gray-400 text-sm mb-2">
             <span>Nivel <span id="currentLevel">1</span></span>
-            <span>Ronda <span id="currentRound">1</span>/5</span>
+            <span>Ronda <span id="currentRound">1</span>/<span id="maxRounds">5</span></span>
           </div>
           <div class="w-full bg-gray-700 rounded-full h-3">
             <div id="progressBar" class="bg-purple-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
@@ -305,7 +410,10 @@
 
         <!-- Answers Reveal -->
         <div id="answersReveal" class="hidden space-y-6">
-          <h2 class="text-3xl font-bold text-yellow-400 text-center mb-8">¡Respuestas!</h2>
+          <h2 class="text-3xl font-bold text-yellow-400 text-center mb-2">¡Respuestas!</h2>
+          <div id="matchIndicator" class="hidden text-center mb-6">
+            <span class="text-4xl font-bold text-green-400">🎉 ¡COINCIDENCIA! 🎉</span>
+          </div>
           
           <!-- Player 1 Answer -->
           <div class="flex items-start gap-4">
@@ -362,12 +470,28 @@
     </div>
 
     <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="hidden flex flex-col items-center justify-center min-h-screen">
+    <div id="gameOverScreen" class="hidden flex flex-col items-center justify-center min-h-screen py-8">
       <h1 class="text-5xl font-bold text-yellow-400 mb-4 text-center">🎉 ¡Juego Terminado! 🎉</h1>
-      <p class="text-gray-400 text-xl mb-12 text-center">Espero que hayáis disfrutado</p>
+      <p class="text-gray-400 text-xl mb-8 text-center">Espero que hayáis disfrutado</p>
+      
+      <!-- Resumen -->
+      <div id="gameSummary" class="w-full max-w-3xl mb-8 space-y-4 max-h-96 overflow-y-auto">
+        <!-- Se llenará dinámicamente -->
+      </div>
+      
+      <!-- Votación para rematch -->
+      <div id="rematchSection" class="mb-8 w-full max-w-md">
+        <p id="rematchText" class="text-gray-300 text-center mb-4">¿Queréis jugar de nuevo?</p>
+        <div class="flex justify-center gap-4">
+          <button id="voteRematchBtn" onclick="voteRematch()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
+            Votar Sí 🎮
+          </button>
+        </div>
+        <p id="rematchVoteStatus" class="text-center text-gray-400 mt-4">Votos: 0/2</p>
+      </div>
       
       <div class="flex flex-col gap-4 w-full max-w-xs">
-        <button onclick="showMainMenu()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
+        <button onclick="showMainMenu()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
           Volver al Menú
         </button>
       </div>

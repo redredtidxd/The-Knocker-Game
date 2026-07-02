@@ -15,6 +15,21 @@ let recordedChunks = [];
 let recordingStartTime = null;
 let recordingInterval = null;
 let recordedAudioBlob = null;
+let timerInterval = null;
+let timerSeconds = 0;
+let hasVotedRematch = false;
+
+const modeNames = {
+  casual: 'Modo Casual',
+  picante: 'Modo Picante',
+  virgen: 'Modo Virgen',
+  apuesta: 'Modo Apuesta',
+  coincidencia: 'Modo Coincidencia',
+  dado: 'Modo Dado',
+  primera_cita: 'Mazo Primera Cita',
+  crisis_20_30: 'Mazo Crisis 20/30',
+  amigos_vida: 'Mazo Amigos de Vida'
+};
 
 function hideAllScreens() {
   const screens = ['mainMenu', 'createGame', 'joinGame', 'waitingRoom', 'gameScreen', 'gameOverScreen', 'playerLeftModal'];
@@ -27,36 +42,37 @@ function hideAllScreens() {
 function showMainMenu() {
   hideAllScreens();
   if (typingTimeout) clearTimeout(typingTimeout);
+  if (timerInterval) clearInterval(timerInterval);
   const mainMenu = document.getElementById('mainMenu');
   if (mainMenu) mainMenu.classList.remove('hidden');
 }
 
-function updateInputTypeVisibility() {
-  const casualRadio = document.getElementById('gameModeCasual');
-  const inputTypeSection = document.getElementById('inputTypeSection');
-  
-  if (casualRadio && inputTypeSection) {
-    if (casualRadio.checked) {
-      inputTypeSection.classList.remove('hidden');
-    } else {
-      inputTypeSection.classList.add('hidden');
-    }
-  }
+function updateGameModeOptions() {
+  const modeInputs = document.querySelectorAll('input[name="gameMode"]');
+  modeInputs.forEach(input => {
+    input.addEventListener('change', () => {
+      const submodeSection = document.getElementById('submodeSection');
+      const mazoSection = document.getElementById('mazoSection');
+      
+      if (input.value === 'picante') {
+        submodeSection.classList.remove('hidden');
+        mazoSection.classList.add('hidden');
+      } else if (input.value === 'casual') {
+        submodeSection.classList.add('hidden');
+        mazoSection.classList.remove('hidden');
+      } else {
+        submodeSection.classList.add('hidden');
+        mazoSection.classList.add('hidden');
+      }
+    });
+  });
 }
 
 function showCreateGame() {
   hideAllScreens();
   const createGameScreen = document.getElementById('createGame');
   if (createGameScreen) createGameScreen.classList.remove('hidden');
-  
-  // Set up listeners for game mode changes
-  const modeInputs = document.querySelectorAll('input[name="gameMode"]');
-  modeInputs.forEach(input => {
-    input.addEventListener('change', updateInputTypeVisibility);
-  });
-  
-  // Initial check
-  updateInputTypeVisibility();
+  updateGameModeOptions();
 }
 
 function showJoinGame() {
@@ -79,15 +95,9 @@ function showGameScreen() {
 
 function showGameOverScreen() {
   hideAllScreens();
+  if (timerInterval) clearInterval(timerInterval);
   const gameOverScreen = document.getElementById('gameOverScreen');
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
-}
-
-function showPlayerLeftModal(playerName) {
-  const modal = document.getElementById('playerLeftModal');
-  const text = document.getElementById('playerLeftText');
-  if (text) text.textContent = `${playerName} ha abandonado la partida.`;
-  if (modal) modal.classList.remove('hidden');
 }
 
 function createGame() {
@@ -95,8 +105,15 @@ function createGame() {
   const name = nameInput ? nameInput.value.trim() : '';
   const modeInputs = document.querySelectorAll('input[name="gameMode"]');
   const inputTypeInputs = document.querySelectorAll('input[name="inputType"]');
+  const timerInputs = document.querySelectorAll('input[name="timer"]');
+  const submodeInputs = document.querySelectorAll('input[name="submode"]');
+  const mazoInputs = document.querySelectorAll('input[name="mazo"]');
+  
   let mode = 'casual';
   inputType = 'text';
+  let timerDuration = null;
+  let submode = null;
+  let mazo = null;
   
   modeInputs.forEach(input => {
     if (input.checked) mode = input.value;
@@ -106,160 +123,28 @@ function createGame() {
     if (input.checked) inputType = input.value;
   });
   
+  timerInputs.forEach(input => {
+    if (input.checked && input.value) timerDuration = parseInt(input.value);
+  });
+  
+  if (mode === 'picante') {
+    submodeInputs.forEach(input => {
+      if (input.checked) submode = input.value;
+    });
+  }
+  
+  if (mode === 'casual') {
+    mazoInputs.forEach(input => {
+      if (input.checked) mazo = input.value;
+    });
+  }
+  
   if (!name) {
     alert('Por favor, introduce tu nombre');
     return;
   }
   
-  socket.emit('createGame', { name, mode, inputType });
-}
-
-function leaveGame() {
-  if (confirm('¿Estás seguro de que quieres salir de la partida?')) {
-    socket.emit('leaveGame');
-    currentGame = null;
-    players = [];
-    showMainMenu();
-  }
-}
-
-async function toggleRecording(playerNumber) {
-  const recordBtn = document.getElementById(`player${playerNumber}RecordBtn`);
-  const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
-  const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
-  
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    stopRecording(playerNumber);
-    return;
-  }
-
-  try {
-    console.log('=== Starting Recording Process ===');
-    console.log('Full URL:', window.location.href);
-    console.log('navigator.mediaDevices:', !!navigator.mediaDevices);
-    console.log('window.isSecureContext:', window.isSecureContext);
-    console.log('hostname:', window.location.hostname);
-
-    // Basic compatibility check
-    if (!navigator.mediaDevices) {
-      console.error('navigator.mediaDevices not found!');
-      alert('Tu navegador no tiene soporte para acceder al micrófono. Por favor, usa Chrome, Firefox, Edge o Opera.');
-      return;
-    }
-
-    if (typeof window.MediaRecorder === 'undefined') {
-      console.error('MediaRecorder not found!');
-      alert('Tu navegador no soporta MediaRecorder. Por favor, usa Chrome, Firefox, Edge o Opera.');
-      return;
-    }
-
-    console.log('Requesting microphone access...');
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log('✅ Microphone access granted!');
-
-    recordedChunks = [];
-    recordingStartTime = Date.now();
-    mediaRecorder = new MediaRecorder(stream);
-
-    mediaRecorder.ondataavailable = (event) => {
-      console.log('Data available:', event.data.size);
-      if (event.data && event.data.size > 0) {
-        recordedChunks.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      console.log('Recording stopped, chunks:', recordedChunks.length);
-      
-      if (recordedChunks.length > 0) {
-        recordedAudioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(recordedAudioBlob);
-        console.log('Audio blob created, size:', recordedAudioBlob.size, 'URL:', audioUrl);
-        
-        const audioElement = document.getElementById(`player${playerNumber}Audio`);
-        const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
-        
-        if (audioElement) audioElement.src = audioUrl;
-        if (audioPreview) audioPreview.classList.remove('hidden');
-      } else {
-        alert('No se grabó audio. Por favor, inténtalo de nuevo.');
-      }
-
-      // Stop the stream tracks
-      stream.getTracks().forEach(track => {
-        console.log('Stopping track:', track.kind);
-        track.stop();
-      });
-    };
-
-    // Start recording
-    try {
-      mediaRecorder.start(1000); // Collect data every 1 second
-    } catch (startError) {
-      console.error('Error starting MediaRecorder:', startError);
-      alert('Error al iniciar la grabación. Por favor, inténtalo de nuevo con otro navegador.');
-      return;
-    }
-
-    console.log('MediaRecorder started');
-    
-    if (recordBtnText) recordBtnText.textContent = 'Detener';
-    if (indicator) indicator.classList.remove('hidden');
-
-    // Update time counter
-    recordingInterval = setInterval(() => {
-      const elapsed = Date.now() - recordingStartTime;
-      const seconds = Math.floor(elapsed / 1000);
-      const minutes = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      const timeEl = document.getElementById(`player${playerNumber}RecordingTime`);
-      if (timeEl) {
-        timeEl.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      }
-    }, 1000);
-
-  } catch (error) {
-    console.error('❌ Error accessing microphone:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
-    let errorMessage = '';
-    
-    if (error.name === 'NotAllowedError') {
-      errorMessage = '❌ Has bloqueado el acceso al micrófono.\n\nPara arreglarlo:\n1. Haz clic en el 🔒 en la barra de direcciones de tu navegador\n2. Busca "Micrófono" y cambia la opción a "Permitir"\n3. Actualiza la página (F5)';
-    } else if (error.name === 'NotFoundError') {
-      errorMessage = '❌ No se encontró un micrófono.\n\nPor favor, conecta un micrófono a tu computadora e inténtalo de nuevo.';
-    } else if (error.name === 'NotReadableError') {
-      errorMessage = '❌ El micrófono está siendo usado por otra aplicación.\n\nPor favor, cierra otras apps como Discord, Teams, o Chrome que estén usando el micrófono, actualiza la página y inténtalo de nuevo.';
-    } else {
-      errorMessage = `❌ Error al acceder al micrófono: ${error.message}\n\nPor favor, inténtalo de nuevo con Chrome o Firefox.`;
-    }
-    
-    alert(errorMessage);
-  }
-}
-
-function stopRecording(playerNumber) {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    console.log('Stopping recording...');
-    mediaRecorder.stop();
-    if (recordingInterval) clearInterval(recordingInterval);
-    
-    const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
-    const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
-    
-    if (recordBtnText) recordBtnText.textContent = 'Grabar';
-    if (indicator) indicator.classList.add('hidden');
-  }
-}
-
-function clearRecording(playerNumber) {
-  recordedAudioBlob = null;
-  const audioElement = document.getElementById(`player${playerNumber}Audio`);
-  const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
-  
-  if (audioElement) audioElement.src = '';
-  if (audioPreview) audioPreview.classList.add('hidden');
+  socket.emit('createGame', { name, mode, submode, mazo, inputType, timerDuration });
 }
 
 function joinGameByCode() {
@@ -344,6 +229,158 @@ function showCopySuccess() {
   }, 2000);
 }
 
+function leaveGame() {
+  if (confirm('¿Estás seguro de que quieres salir de la partida?')) {
+    socket.emit('leaveGame');
+    currentGame = null;
+    players = [];
+    showMainMenu();
+  }
+}
+
+async function toggleRecording(playerNumber) {
+  const recordBtn = document.getElementById(`player${playerNumber}RecordBtn`);
+  const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
+  const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
+  
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopRecording(playerNumber);
+    return;
+  }
+
+  try {
+    console.log('=== Starting Recording Process ===');
+    console.log('Full URL:', window.location.href);
+    console.log('navigator.mediaDevices:', !!navigator.mediaDevices);
+    console.log('window.isSecureContext:', window.isSecureContext);
+    console.log('hostname:', window.location.hostname);
+
+    if (typeof window.MediaRecorder === 'undefined') {
+      console.error('MediaRecorder not found!');
+      alert('Tu navegador no soporta MediaRecorder. Por favor, usa Chrome, Firefox, Edge o Opera.');
+      return;
+    }
+
+    console.log('Requesting microphone access...');
+    let stream;
+    
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } else {
+      stream = await new Promise((resolve, reject) => {
+        const legacyGetUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+        if (!legacyGetUserMedia) {
+          reject(new Error('getUserMedia not supported'));
+          return;
+        }
+        legacyGetUserMedia.call(navigator, { audio: true }, resolve, reject);
+      });
+    }
+    
+    console.log('✅ Microphone access granted!');
+
+    recordedChunks = [];
+    recordingStartTime = Date.now();
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (event) => {
+      console.log('Data available:', event.data.size);
+      if (event.data && event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      console.log('Recording stopped, chunks:', recordedChunks.length);
+      
+      if (recordedChunks.length > 0) {
+        recordedAudioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(recordedAudioBlob);
+        console.log('Audio blob created, size:', recordedAudioBlob.size, 'URL:', audioUrl);
+        
+        const audioElement = document.getElementById(`player${playerNumber}Audio`);
+        const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
+        
+        if (audioElement) audioElement.src = audioUrl;
+        if (audioPreview) audioPreview.classList.remove('hidden');
+      } else {
+        alert('No se grabó audio. Por favor, inténtalo de nuevo.');
+      }
+
+      stream.getTracks().forEach(track => {
+        console.log('Stopping track:', track.kind);
+        track.stop();
+      });
+    };
+
+    try {
+      mediaRecorder.start(1000);
+    } catch (startError) {
+      console.error('Error starting MediaRecorder:', startError);
+      alert('Error al iniciar la grabación. Por favor, inténtalo de nuevo con otro navegador.');
+      return;
+    }
+
+    console.log('MediaRecorder started');
+    
+    if (recordBtnText) recordBtnText.textContent = 'Detener';
+    if (indicator) indicator.classList.remove('hidden');
+
+    recordingInterval = setInterval(() => {
+      const elapsed = Date.now() - recordingStartTime;
+      const seconds = Math.floor(elapsed / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      const timeEl = document.getElementById(`player${playerNumber}RecordingTime`);
+      if (timeEl) {
+        timeEl.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+    }, 1000);
+
+  } catch (error) {
+    console.error('❌ Error accessing microphone:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    let errorMessage = '';
+    
+    if (error.name === 'NotAllowedError' || error.message?.includes('NotAllowed')) {
+      errorMessage = '❌ Has bloqueado el acceso al micrófono.\n\nPara arreglarlo:\n1. Haz clic en el 🔒 en la barra de direcciones de tu navegador\n2. Busca "Micrófono" y cambia la opción a "Permitir"\n3. Actualiza la página (F5)';
+    } else if (error.name === 'NotFoundError' || error.message?.includes('NotFound')) {
+      errorMessage = '❌ No se encontró un micrófono.\n\nPor favor, conecta un micrófono a tu computadora e inténtalo de nuevo.';
+    } else if (error.name === 'NotReadableError' || error.message?.includes('NotReadable')) {
+      errorMessage = '❌ El micrófono está siendo usado por otra aplicación.\n\nPor favor, cierra otras apps como Discord, Teams, o Chrome que estén usando el micrófono, actualiza la página e inténtalo de nuevo.';
+    } else {
+      errorMessage = `❌ Error al acceder al micrófono: ${error.message || 'Tu navegador bloquea el micrófono en sitios HTTP. La única solución definitiva es usar HTTPS.\n\nPor favor, inténtalo de nuevo con Chrome o Firefox en HTTPS.'}`;
+    }
+    
+    alert(errorMessage);
+  }
+}
+
+function stopRecording(playerNumber) {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    console.log('Stopping recording...');
+    mediaRecorder.stop();
+    if (recordingInterval) clearInterval(recordingInterval);
+    
+    const recordBtnText = document.getElementById(`player${playerNumber}RecordBtnText`);
+    const indicator = document.getElementById(`player${playerNumber}RecordingIndicator`);
+    
+    if (recordBtnText) recordBtnText.textContent = 'Grabar';
+    if (indicator) indicator.classList.add('hidden');
+  }
+}
+
+function clearRecording(playerNumber) {
+  recordedAudioBlob = null;
+  const audioElement = document.getElementById(`player${playerNumber}Audio`);
+  const audioPreview = document.getElementById(`player${playerNumber}AudioPreview`);
+  
+  if (audioElement) audioElement.src = '';
+  if (audioPreview) audioPreview.classList.add('hidden');
+}
+
 function skipQuestion() {
   if (hasAnswered) return;
   socket.emit('skipQuestion');
@@ -361,14 +398,13 @@ async function submitAnswer() {
       return;
     }
     
-    // Convert blob to base64
     audioData = await blobToBase64(recordedAudioBlob);
     answer = '[Mensaje de voz]';
   } else {
-    if (currentPlayerId === players[0].id) {
+    if (currentPlayerId === players[0]?.id) {
       const el = document.getElementById('player1Answer');
       answer = el ? el.value.trim() : '';
-    } else if (currentPlayerId === players[1].id) {
+    } else if (currentPlayerId === players[1]?.id) {
       const el = document.getElementById('player2Answer');
       answer = el ? el.value.trim() : '';
     }
@@ -382,8 +418,7 @@ async function submitAnswer() {
   hasAnswered = true;
   socket.emit('submitAnswer', { answer, audioData, isAudio: inputType === 'voice' });
   
-  // Disable UI
-  if (currentPlayerId === players[0].id) {
+  if (currentPlayerId === players[0]?.id) {
     const answerEl = document.getElementById('player1Answer');
     const submitBtn = document.getElementById('player1SubmitBtn');
     const skipBtn = document.getElementById('player1SkipBtn');
@@ -394,7 +429,7 @@ async function submitAnswer() {
     if (skipBtn) skipBtn.disabled = true;
     if (recordBtn) recordBtn.disabled = true;
     if (submitBtn) submitBtn.textContent = 'Esperando...';
-  } else if (currentPlayerId === players[1].id) {
+  } else if (currentPlayerId === players[1]?.id) {
     const answerEl = document.getElementById('player2Answer');
     const submitBtn = document.getElementById('player2SubmitBtn');
     const skipBtn = document.getElementById('player2SkipBtn');
@@ -430,7 +465,7 @@ function updateGameList(games) {
     <div class="game-item p-4 rounded-xl mb-2 flex justify-between items-center bg-gray-700 cursor-pointer hover:bg-gray-600 transition" onclick="joinGame('${game.id}')">
       <div>
         <p class="text-white font-bold">Partida ${game.id}</p>
-        <p class="text-gray-400 text-sm">${game.mode === 'casual' ? 'Modo Casual' : game.mode}</p>
+        <p class="text-gray-400 text-sm">${modeNames[game.mode] || 'Modo Casual'}</p>
       </div>
       <div class="text-purple-400 font-bold">
         ${game.players.length}/2
@@ -442,16 +477,14 @@ function updateGameList(games) {
 function updateSkipsDisplay() {
   if (!currentGame) return;
   
-  // Player 1
-  const p1Skips = currentGame.skips?.[players[0].id] ?? 2;
+  const p1Skips = currentGame.skips?.[players[0]?.id] ?? 2;
   const p1SkipsEl = document.getElementById('player1Skips');
   const p1SkipBtn = document.getElementById('player1SkipBtn');
   
   if (p1SkipsEl) p1SkipsEl.textContent = `⏭️ ${p1Skips} saltos restantes`;
   if (p1SkipBtn) p1SkipBtn.disabled = p1Skips <= 0 || hasAnswered;
   
-  // Player 2
-  const p2Skips = currentGame.skips?.[players[1].id] ?? 2;
+  const p2Skips = currentGame.skips?.[players[1]?.id] ?? 2;
   const p2SkipsEl = document.getElementById('player2Skips');
   const p2SkipBtn = document.getElementById('player2SkipBtn');
   
@@ -463,17 +496,18 @@ function updateGameUI(game) {
   console.log('Updating UI with game:', game);
   currentGame = game;
   
-  // Get input type from game if available
   if (game.inputType) {
     inputType = game.inputType;
   }
   
   const currentLevelEl = document.getElementById('currentLevel');
   const currentRoundEl = document.getElementById('currentRound');
+  const maxRoundsEl = document.getElementById('maxRounds');
   const progressBar = document.getElementById('progressBar');
   
   if (currentLevelEl) currentLevelEl.textContent = game.currentLevel;
   if (currentRoundEl) currentRoundEl.textContent = game.currentRound;
+  if (maxRoundsEl) maxRoundsEl.textContent = game.maxRounds;
   
   if (progressBar && game.maxRounds && game.maxLevels) {
     const totalRounds = game.maxRounds * game.maxLevels;
@@ -482,7 +516,18 @@ function updateGameUI(game) {
     progressBar.style.width = `${progress}%`;
   }
   
-  // Set up names and initials
+  const modeTextEl = document.getElementById('currentModeText');
+  if (modeTextEl) {
+    let displayMode = game.currentDiceMode || game.mode;
+    modeTextEl.textContent = modeNames[displayMode] || 'Modo Casual';
+  }
+  
+  if (game.timerDuration) {
+    const timerDisplay = document.getElementById('timerDisplay');
+    if (timerDisplay) timerDisplay.classList.remove('hidden');
+    startTimer(game.timerDuration);
+  }
+  
   const player1NameEl = document.getElementById('player1Name');
   const player1InitialEl = document.getElementById('player1Initial');
   const player2NameEl = document.getElementById('player2Name');
@@ -493,7 +538,6 @@ function updateGameUI(game) {
   if (player2NameEl && players[1]) player2NameEl.textContent = players[1].name;
   if (player2InitialEl && players[1]) player2InitialEl.textContent = players[1].name[0].toUpperCase();
   
-  // Set questions
   const player1QuestionEl = document.getElementById('player1Question');
   const player2QuestionEl = document.getElementById('player2Question');
   
@@ -504,7 +548,6 @@ function updateGameUI(game) {
     player2QuestionEl.textContent = game.questions?.[players[1].id] || 'Cargando pregunta...';
   }
   
-  // Show/hide text/voice inputs based on input type
   const player1TextInput = document.getElementById('player1TextInput');
   const player1VoiceInput = document.getElementById('player1VoiceInput');
   const player2TextInput = document.getElementById('player2TextInput');
@@ -522,11 +565,9 @@ function updateGameUI(game) {
     if (player2VoiceInput) player2VoiceInput.classList.add('hidden');
   }
   
-  // Reset UI for new round
   hasAnswered = false;
   recordedAudioBlob = null;
   
-  // Reset text inputs
   const player1AnswerEl = document.getElementById('player1Answer');
   const player1SubmitBtn = document.getElementById('player1SubmitBtn');
   const player1SkipBtn = document.getElementById('player1SkipBtn');
@@ -535,11 +576,11 @@ function updateGameUI(game) {
   const player1Audio = document.getElementById('player1Audio');
   
   if (player1AnswerEl) player1AnswerEl.value = '';
-  if (player1AnswerEl) player1AnswerEl.disabled = false;
-  if (player1SubmitBtn) player1SubmitBtn.disabled = false;
+  if (player1AnswerEl) player1AnswerEl.disabled = true;
+  if (player1SubmitBtn) player1SubmitBtn.disabled = true;
   if (player1SubmitBtn) player1SubmitBtn.textContent = 'Enviar Respuesta';
-  if (player1SkipBtn) player1SkipBtn.disabled = false;
-  if (player1RecordBtn) player1RecordBtn.disabled = false;
+  if (player1SkipBtn) player1SkipBtn.disabled = true;
+  if (player1RecordBtn) player1RecordBtn.disabled = true;
   if (player1AudioPreview) player1AudioPreview.classList.add('hidden');
   if (player1Audio) player1Audio.src = '';
   
@@ -551,41 +592,71 @@ function updateGameUI(game) {
   const player2Audio = document.getElementById('player2Audio');
   
   if (player2AnswerEl) player2AnswerEl.value = '';
-  if (player2AnswerEl) player2AnswerEl.disabled = false;
-  if (player2SubmitBtn) player2SubmitBtn.disabled = false;
+  if (player2AnswerEl) player2AnswerEl.disabled = true;
+  if (player2SubmitBtn) player2SubmitBtn.disabled = true;
   if (player2SubmitBtn) player2SubmitBtn.textContent = 'Enviar Respuesta';
-  if (player2SkipBtn) player2SkipBtn.disabled = false;
-  if (player2RecordBtn) player2RecordBtn.disabled = false;
+  if (player2SkipBtn) player2SkipBtn.disabled = true;
+  if (player2RecordBtn) player2RecordBtn.disabled = true;
   if (player2AudioPreview) player2AudioPreview.classList.add('hidden');
   if (player2Audio) player2Audio.src = '';
   
-  // Only enable your own input
-  if (currentPlayerId === players[0].id) {
-    if (player2AnswerEl) player2AnswerEl.disabled = true;
-    if (player2SubmitBtn) player2SubmitBtn.disabled = true;
-    if (player2SkipBtn) player2SkipBtn.disabled = true;
-    if (player2RecordBtn) player2RecordBtn.disabled = true;
+  if (currentPlayerId === players[0]?.id) {
+    if (player1AnswerEl) player1AnswerEl.disabled = false;
+    if (player1SubmitBtn) player1SubmitBtn.disabled = false;
+    if (player1SkipBtn) player1SkipBtn.disabled = false;
+    if (player1RecordBtn) player1RecordBtn.disabled = false;
     if (player2SubmitBtn) player2SubmitBtn.textContent = 'Es turno del otro jugador';
-  } else {
-    if (player1AnswerEl) player1AnswerEl.disabled = true;
-    if (player1SubmitBtn) player1SubmitBtn.disabled = true;
-    if (player1SkipBtn) player1SkipBtn.disabled = true;
-    if (player1RecordBtn) player1RecordBtn.disabled = true;
+  } else if (currentPlayerId === players[1]?.id) {
+    if (player2AnswerEl) player2AnswerEl.disabled = false;
+    if (player2SubmitBtn) player2SubmitBtn.disabled = false;
+    if (player2SkipBtn) player2SkipBtn.disabled = false;
+    if (player2RecordBtn) player2RecordBtn.disabled = false;
     if (player1SubmitBtn) player1SubmitBtn.textContent = 'Es turno del otro jugador';
   }
   
-  // Render history
   renderHistory(game.roundHistory);
-  
-  // Update skips display
   updateSkipsDisplay();
   
-  // Show questions, hide answers
   const gameContent = document.getElementById('gameContent');
   const answersReveal = document.getElementById('answersReveal');
   
   if (gameContent) gameContent.classList.remove('hidden');
   if (answersReveal) answersReveal.classList.add('hidden');
+}
+
+function startTimer(seconds) {
+  if (timerInterval) clearInterval(timerInterval);
+  
+  timerSeconds = seconds;
+  updateTimerDisplay();
+  
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      if (!hasAnswered) {
+        alert('¡Tiempo agotado!');
+      }
+    }
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const timerText = document.getElementById('timerText');
+  if (!timerText) return;
+  
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  
+  if (timerSeconds <= 10) {
+    timerText.classList.add('text-red-400');
+    timerText.classList.remove('text-yellow-400');
+  } else {
+    timerText.classList.add('text-yellow-400');
+    timerText.classList.remove('text-red-400');
+  }
 }
 
 function renderHistory(history) {
@@ -601,26 +672,27 @@ function renderHistory(history) {
     <h3 class="text-gray-400 text-lg font-bold mb-4">Historial</h3>
     ${history.map((round, index) => `
       <div class="bg-gray-800/50 rounded-2xl p-4">
-        <div class="text-gray-500 text-sm mb-3">Ronda ${round.round} - Nivel ${round.level}</div>
+        <div class="text-gray-500 text-sm mb-3">Ronda ${round.round} - Nivel ${round.level} ${round.mode ? `- ${modeNames[round.mode]}` : ''}</div>
         <div class="space-y-4">
           <div class="flex items-start gap-4">
             <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              ${players[0]?.name[0]?.toUpperCase() || 'P1'}
+              ${players[0]?.name[0]?.toUpperCase() || 'J1'}
             </div>
             <div class="flex-1">
-              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[0].id] || ''}</p>
-              ${(round.answers?.[players[0].id] && round.answers?.[players[0].id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[0].id].audio}"></audio>` : `<p class="text-purple-300">${round.answers?.[players[0].id]?.text || round.answers?.[players[0].id] || ''}</p>`}
+              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[0]?.id] || ''}</p>
+              ${(round.answers?.[players[0]?.id] && round.answers?.[players[0]?.id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[0].id].audio}"></audio>` : `<p class="text-purple-300">${round.answers?.[players[0]?.id]?.text || round.answers?.[players[0]?.id] || ''}</p>`}
             </div>
           </div>
           <div class="flex items-start gap-4 flex-row-reverse">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-              ${players[1]?.name[0]?.toUpperCase() || 'P2'}
+              ${players[1]?.name[0]?.toUpperCase() || 'J2'}
             </div>
             <div class="flex-1 text-right">
-              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[1].id] || ''}</p>
-              ${(round.answers?.[players[1].id] && round.answers?.[players[1].id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[1].id].audio}"></audio>` : `<p class="text-blue-300">${round.answers?.[players[1].id]?.text || round.answers?.[players[1].id] || ''}</p>`}
+              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[1]?.id] || ''}</p>
+              ${(round.answers?.[players[1]?.id] && round.answers?.[players[1]?.id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[1].id].audio}"></audio>` : `<p class="text-blue-300">${round.answers?.[players[1]?.id]?.text || round.answers?.[players[1]?.id] || ''}</p>`}
             </div>
           </div>
+          ${round.isMatch ? `<div class="text-center mt-3"><span class="text-green-400 font-bold">🎉 ¡Coincidencia en esta ronda!</span></div>` : ''}
         </div>
       </div>
     `).join('')}
@@ -636,11 +708,19 @@ function showAnswers(data) {
   
   const gameContent = document.getElementById('gameContent');
   const answersReveal = document.getElementById('answersReveal');
+  const matchIndicator = document.getElementById('matchIndicator');
+  
+  if (timerInterval) clearInterval(timerInterval);
   
   if (gameContent) gameContent.classList.add('hidden');
   if (answersReveal) answersReveal.classList.remove('hidden');
   
-  // Player 1
+  if (data.isMatch) {
+    if (matchIndicator) matchIndicator.classList.remove('hidden');
+  } else {
+    if (matchIndicator) matchIndicator.classList.add('hidden');
+  }
+  
   const revealPlayer1Initial = document.getElementById('revealPlayer1Initial');
   const revealPlayer1Question = document.getElementById('revealPlayer1Question');
   const revealPlayer1Name = document.getElementById('revealPlayer1Name');
@@ -676,7 +756,6 @@ function showAnswers(data) {
     }
   }
   
-  // Player 2
   const revealPlayer2Initial = document.getElementById('revealPlayer2Initial');
   const revealPlayer2Question = document.getElementById('revealPlayer2Question');
   const revealPlayer2Name = document.getElementById('revealPlayer2Name');
@@ -713,6 +792,67 @@ function showAnswers(data) {
   }
 }
 
+function voteRematch() {
+  if (hasVotedRematch) return;
+  
+  hasVotedRematch = true;
+  socket.emit('voteRematch');
+  
+  const btn = document.getElementById('voteRematchBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('opacity-50');
+    btn.textContent = '¡Voto emitido! 🗳️';
+  }
+}
+
+function updateRematchVoteStatus(votes, total) {
+  const statusEl = document.getElementById('rematchVoteStatus');
+  if (statusEl) {
+    statusEl.textContent = `Votos: ${votes}/${total}`;
+  }
+}
+
+function renderGameSummary(history) {
+  const summaryDiv = document.getElementById('gameSummary');
+  if (!summaryDiv) return;
+  
+  if (!history || history.length === 0) {
+    summaryDiv.innerHTML = '<p class="text-gray-500 text-center">No hay historial de partida</p>';
+    return;
+  }
+  
+  summaryDiv.innerHTML = `
+    <h3 class="text-gray-400 text-lg font-bold mb-4">Resumen de la Partida</h3>
+    ${history.map((round, index) => `
+      <div class="bg-gray-800/50 rounded-2xl p-4">
+        <div class="text-gray-500 text-sm mb-3">Ronda ${round.round} - Nivel ${round.level} ${round.mode ? `- ${modeNames[round.mode]}` : ''}</div>
+        <div class="space-y-4">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              ${players[0]?.name[0]?.toUpperCase() || 'J1'}
+            </div>
+            <div class="flex-1">
+              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[0]?.id] || ''}</p>
+              ${(round.answers?.[players[0]?.id] && round.answers?.[players[0]?.id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[0].id].audio}"></audio>` : `<p class="text-purple-300">${round.answers?.[players[0]?.id]?.text || round.answers?.[players[0]?.id] || ''}</p>`}
+            </div>
+          </div>
+          <div class="flex items-start gap-4 flex-row-reverse">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              ${players[1]?.name[0]?.toUpperCase() || 'J2'}
+            </div>
+            <div class="flex-1 text-right">
+              <p class="text-gray-400 text-xs mb-1">${round.questions?.[players[1]?.id] || ''}</p>
+              ${(round.answers?.[players[1]?.id] && round.answers?.[players[1]?.id].isAudio) ? `<audio controls class="w-full" src="${round.answers[players[1].id].audio}"></audio>` : `<p class="text-blue-300">${round.answers?.[players[1]?.id]?.text || round.answers?.[players[1]?.id] || ''}</p>`}
+            </div>
+          </div>
+          ${round.isMatch ? `<div class="text-center mt-3"><span class="text-green-400 font-bold">🎉 ¡Coincidencia!</span></div>` : ''}
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
 function setupTypingListeners() {
   ['player1Answer', 'player2Answer'].forEach(id => {
     const textarea = document.getElementById(id);
@@ -743,7 +883,6 @@ socket.on('connect', () => {
   currentPlayerId = socket.id;
   console.log('✅ Connected with ID:', currentPlayerId);
   
-  // Check URL for room code
   const urlParams = new URLSearchParams(window.location.search);
   const roomCode = urlParams.get('room');
   if (roomCode) {
@@ -783,6 +922,7 @@ socket.on('gameStarted', (data) => {
   console.log('🎮 Game started:', data);
   currentGame = data.game;
   players = data.players;
+  hasVotedRematch = false;
   setupTypingListeners();
   updateGameUI(currentGame);
   showGameScreen();
@@ -828,13 +968,39 @@ socket.on('nextRound', (game) => {
   updateGameUI(currentGame);
 });
 
-socket.on('gameOver', () => {
+socket.on('gameOver', (data) => {
+  renderGameSummary(data.history);
   showGameOverScreen();
+});
+
+socket.on('rematchVoteUpdated', (data) => {
+  updateRematchVoteStatus(data.votes, data.total);
+});
+
+socket.on('rematchAccepted', (data) => {
+  hasVotedRematch = false;
+  currentGame = data.game;
+  players = data.players;
+  const voteBtn = document.getElementById('voteRematchBtn');
+  if (voteBtn) {
+    voteBtn.disabled = false;
+    voteBtn.classList.remove('opacity-50');
+    voteBtn.textContent = 'Votar Sí 🎮';
+  }
+  updateGameUI(currentGame);
+  showGameScreen();
 });
 
 socket.on('playerLeft', (data) => {
   showPlayerLeftModal(data.playerName);
 });
+
+function showPlayerLeftModal(playerName) {
+  const modal = document.getElementById('playerLeftModal');
+  const text = document.getElementById('playerLeftText');
+  if (text) text.textContent = `${playerName} ha abandonado la partida.`;
+  if (modal) modal.classList.remove('hidden');
+}
 
 socket.on('joinError', (message) => {
   alert(message);
